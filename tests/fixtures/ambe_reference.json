@@ -1,0 +1,106 @@
+{
+  "reference": {
+    "mbelib_commit": "9a04ed5c78176a9965f3d43f7aa1b1f5330e771f",
+    "dsd_commit": "59423fa46be8b41ef0bd2f3d2b45590600be29f0",
+    "capture_sha256": "4e94fc9fba4918b9401a524ab8bfd977340aad3648d7af3b59e7a92522ba173d",
+    "note": "Channel-decoding vectors from opaque vendor traffic, not clear speech or proof of voice integrity."
+  },
+  "vectors": [
+    {
+      "air72": "CF80B158633BD80E3B",
+      "payload49": "E910B88E9CF180"
+    },
+    {
+      "air72": "CC59E3D3480103A13F",
+      "payload49": "DA43B2366E2B80"
+    },
+    {
+      "air72": "828A8D06006B519253",
+      "payload49": "BC14118A083D80"
+    },
+    {
+      "air72": "5C8E6210EB57F44DB2",
+      "payload49": "70C119C704F300"
+    },
+    {
+      "air72": "AD8AD65E5A5F50036B",
+      "payload49": "F950808E957280"
+    },
+    {
+      "air72": "B90EC2F3646E032271",
+      "payload49": "DA13F2BD860980"
+    },
+    {
+      "air72": "D3DB88666ACD453AE4",
+      "payload49": "BC75951DE02C00"
+    },
+    {
+      "air72": "3CCF4456879384A045",
+      "payload49": "70A9D99124E080"
+    },
+    {
+      "air72": "CBC1973476EA1DCA62",
+      "payload49": "E830C18EBD1800"
+    },
+    {
+      "air72": "D94E85F00052C333CE",
+      "payload49": "DA0302BB8C4E00"
+    },
+    {
+      "air72": "93B8EF426EE3E4685B",
+      "payload49": "BC6561D3C82180"
+    },
+    {
+      "air72": "1EEC467686A5C0F554",
+      "payload49": "70A9A511042700"
+    },
+    {
+      "air72": "C9A4B77813A39D0685",
+      "payload49": "E92034889DB880"
+    },
+    {
+      "air72": "998C87B300774FAB86",
+      "payload49": "FA03F2BB8E6A00"
+    },
+    {
+      "air72": "A29BCD624EA7A17A68",
+      "payload49": "BC6591DC682C00"
+    },
+    {
+      "air72": "1CED447487D384A163",
+      "payload49": "70A9589724E280"
+    },
+    {
+      "air72": "8BC7F35E30BF1D031C",
+      "payload49": "E931C188BD7B00"
+    },
+    {
+      "air72": "A5FA789C30668A76E6",
+      "payload49": "B70E37BED50400"
+    },
+    {
+      "air72": "B7CA22C21B4E302160",
+      "payload49": "B2515ED5819200"
+    },
+    {
+      "air72": "C773150D310B489CFD",
+      "payload49": "8114A584FBA580"
+    },
+    {
+      "air72": "D8D022196CA45E78A8",
+      "payload49": "E1684735461400"
+    },
+    {
+      "air72": "23C2CA2FB4719B8FF2",
+      "payload49": "2D8FB02E837B00"
+    },
+    {
+      "air72": "F1C57BA92746F59A65",
+      "payload49": "A70763CDBA9C80"
+    },
+    {
+      "air72": "F5710E0073DA720110",
+      "payload49": "843CFFE1E1D300"
+    }
+  ]
+}

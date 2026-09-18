@@ -1,0 +1,29 @@
+{
+  "input": "dmr_test.wav",
+  "sha256": "4e94fc9fba4918b9401a524ab8bfd977340aad3648d7af3b59e7a92522ba173d",
+  "iq_format": "stereo PCM32 little-endian I/Q",
+  "sample_rate": 54688,
+  "samples": 635136,
+  "channel_offset_hz": -12500,
+  "observations_not_independent_ground_truth": true,
+  "expected_observed": {
+    "voice_bursts": 72,
+    "voice72_frames": 216,
+    "validated_lc_pdus": 18,
+    "colour_code": 15,
+    "fid": 104,
+    "lc_hex": "0068400044C000418C",
+    "source_mode": "ms",
+    "absolute_slot": null,
+    "privacy_status": "unknown_vendor"
+  },
+  "raw_export": {
+    "path": "output/dmr_test.voice72.bin",
+    "bytes": 1944,
+    "frame_bytes": 9,
+    "packing": "MSB first, received air order, no header, no correction or decryption",
+    "frame_count": 216,
+    "sha256": "1ee2081dc26128c8b07901f55ae9a9df96fd8d5f1d2ff17b79a9debf3654475f",
+    "timing_and_metadata": "output/dmr_test.jsonl"
+  }
+}

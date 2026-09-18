@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/dmr/event-v1",
+  "title": "DMR receiver event v1",
+  "type": "object",
+  "required": ["schema_version", "sequence", "type", "capture_id", "rf_sample_index", "rf_time_seconds", "track", "slot", "session_id", "data"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "sequence": {"type": "integer", "minimum": 0},
+    "type": {"enum": ["capture_info", "sync_acquired", "sync_lost", "burst", "symbols", "pdu", "control", "data_header", "diagnostic", "call_start", "call_update", "call_end", "vocoder_frame", "erasure"]},
+    "capture_id": {"type": "string"},
+    "rf_sample_index": {"type": "integer", "minimum": 0},
+    "rf_time_seconds": {"type": "number", "minimum": 0},
+    "track": {"enum": [-1, 0, 1]},
+    "slot": {"enum": [null, 1, 2]},
+    "session_id": {"type": ["string", "null"]},
+    "data": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"type": {"const": "vocoder_frame"}}},
+      "then": {
+        "properties": {
+          "session_id": {"type": "string"},
+          "data": {
+            "required": ["burst_id", "superframe_phase", "frame_index_in_burst", "frame_sequence", "playout_offset_ms", "duration_ms", "representation", "bit_length", "payload_hex", "privacy_status", "metadata_revision", "channel_decode_valid", "corrected_bits", "voice_crc_available", "erasure", "ambe49_hex", "ambe49_status"],
+            "properties": {
+              "burst_id": {"type": "integer", "minimum": 1},
+              "superframe_phase": {"enum": ["A", "B", "C", "D", "E", "F"]},
+              "frame_index_in_burst": {"enum": [0, 1, 2]},
+              "frame_sequence": {"type": "integer", "minimum": 0},
+              "playout_offset_ms": {"type": "integer", "minimum": 0, "multipleOf": 20},
+              "duration_ms": {"const": 20},
+              "representation": {"const": "dmr_voice72_air"},
+              "bit_length": {"const": 72},
+              "payload_hex": {"type": "string", "pattern": "^[0-9A-F]{18}$"},
+              "privacy_status": {"enum": ["unknown", "not_indicated", "indicated", "unknown_vendor"]},
+              "metadata_revision": {"type": "integer", "minimum": 0},
+              "channel_decode_valid": {"type": "boolean"},
+              "corrected_bits": {"type": "integer", "minimum": 0},
+              "voice_crc_available": {"const": false},
+              "erasure": {"const": false},
+              "ambe49_hex": {"type": ["string", "null"], "pattern": "^[0-9A-F]{12}(00|80)$"},
+              "ambe49_status": {"enum": ["codec_profile_unknown", "privacy_unknown", "opaque_privacy", "opaque_vendor_profile", "unprotected_bits_unverified", "channel_decode_failed"]}
+            }
+          }
+        }
+      }
+    }
+  ]
+}

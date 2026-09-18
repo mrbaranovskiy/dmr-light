@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../Dmr/Dmr.csproj" /></ItemGroup>
+  <ItemGroup>
+    <None Include="../../THIRD_PARTY_NOTICES.md" Link="THIRD_PARTY_NOTICES.md" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="../../schemas/dmr-event.schema.json" Link="dmr-event.schema.json" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
