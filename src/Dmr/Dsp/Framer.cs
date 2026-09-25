@@ -67,6 +67,40 @@ internal sealed class Framer
         error=sum/count; return bits;
     }
     private long Sample(double start)=>Math.Max(origin,origin+(long)Math.Round((start-FrontEnd.PulseDelay-.5)*inputRate/48000));
+    private void SearchSync()
+    {
+        // During acquisition every pattern uses the same window at a fixed 10-sample step.
+        // index>800 puts all 24 integral positions and their neighbors inside the ring.
+        // Keep Fit's accumulation order and At's zero-weighted neighbor term.
+        long first=index-231;
+        double syncStart=first, sum=0,sum2=0;
+        Span<double> window=stackalloc double[24];
+        for(int i=0;i<window.Length;i++)
+        {
+            int n=(int)((first+i*10)&(Capacity-1));
+            double v=frequency[n]+frequency[(n+1)&(Capacity-1)]*0.0;
+            window[i]=v; sum+=v; sum2+=v*v;
+        }
+        double variance=Math.Max(0,sum2-sum*sum/24);
+        if(!(variance>1)) return;
+        foreach(var pattern in patterns)
+        {
+            double dot=0;
+            for(int i=0;i<window.Length;i++) dot+=window[i]*(pattern.Symbols[i]-pattern.Mean);
+            double g=dot/pattern.Energy;
+            if(Math.Abs(g)<200 || Math.Abs(g)>1300) continue;
+            double score=Math.Abs(dot)/Math.Sqrt(variance*pattern.Energy);
+            if(score<.965) continue;
+            // Rejected fits never need a heap-allocated candidate.
+            var c=new Candidate(syncStart-540,pattern,g,sum/24-g*pattern.Mean,score);
+            int existing=-1;
+            for(int i=0;i<candidates.Count;i++)
+                if(Math.Abs(candidates[i].Start-c.Start)<20 && candidates[i].Pattern.Family==pattern.Family)
+                { existing=i; break; }
+            if(existing>=0) { if(c.Score>candidates[existing].Score) candidates[existing]=c; }
+            else if(candidates.Count<16) candidates.Add(c);
+        }
+    }
     public void Push(double f,double p)
     {
         frequency[(int)(++index&(Capacity-1))]=f; power[(int)(index&(Capacity-1))]=p;
@@ -75,18 +109,7 @@ internal sealed class Framer
             if(index>=nextStart+132*symbolStep+25) DecodeScheduled();
             return;
         }
-        if(index>800)
-        {
-            double syncStart=index-231;
-            foreach(var pattern in patterns)
-            {
-                var c=Fit(syncStart,pattern);
-                if(c.Score<.965) continue;
-                int existing=candidates.FindIndex(x=>Math.Abs(x.Start-c.Start)<20 && x.Pattern.Family==pattern.Family);
-                if(existing>=0) { if(c.Score>candidates[existing].Score) candidates[existing]=c; }
-                else if(candidates.Count<16) candidates.Add(c);
-            }
-        }
+        if(index>800) SearchSync();
         for(int i=0;i<candidates.Count;i++)
         {
             var c=candidates[i]; if(index<c.Start+1340) continue;
