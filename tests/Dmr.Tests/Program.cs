@@ -217,6 +217,17 @@ Test("192 kHz capture resamples to exact frames",()=>
     Check(events.Count(e=>e.Type=="vocoder_frame")==144);
     Check(events.Where(e=>e.Type=="vocoder_frame" && e.Slot==1).Select(e=>(string)e.Data["payload_hex"]!).SequenceEqual(fixture.Slot1Frames));
 });
+Test("Resampling at input-rate limits preserves both slots across ring wraps",()=>
+{
+    foreach(int rate in new[]{24000,384000})
+    {
+        var fixture=Synthetic.Create(rate);
+        var events=Synthetic.Decode(fixture.Iq,rate,chunk:137);
+        foreach(int slot in new[]{1,2})
+            Check(events.Where(e=>e.Type=="vocoder_frame" && e.Slot==slot).Select(e=>(string)e.Data["payload_hex"]!)
+                .SequenceEqual(slot==1?fixture.Slot1Frames:fixture.Slot2Frames),$"Rate {rate}, slot {slot} payload mismatch");
+    }
+});
 Test("Noise-only input produces no confirmed calls",()=>
 {
     var rng=new Random(17); var noise=Enumerable.Range(0,48000*2).Select(_=>new Complex(rng.NextDouble()-.5,rng.NextDouble()-.5)).ToArray();

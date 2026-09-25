@@ -150,6 +150,7 @@ The CLI timing includes receiver initialization, file reading, decoding, JSONL w
 `--throughput` runs independently of the correctness suite. It replays the supplied recording and synthetic two-slot traffic at 48, 96, 192, and 384 ksample/s, with two warm-ups and five measured runs per case. Each replay uses a fresh receiver and 8192-sample chunks, and checks the processed sample and recovered voice-frame counts. Console output and the JSON report include median timing, min/max timing, and rates; JSON also retains every measured run and runtime details. These measurements include receiver initialization and event counting, but exclude input loading/generation, JSON serialization, file output, and speech synthesis. Run on an otherwise idle machine in Release mode. Average throughput does not establish worst-case chunk latency or guarantee drop-free live reception.
 
 Measured acquisition optimization results and validation are recorded in [docs/FRAMER_PERFORMANCE.md](docs/FRAMER_PERFORMANCE.md).
+Resampling optimization results, including input-rate comparisons, are recorded in [docs/FRONTEND_PERFORMANCE.md](docs/FRONTEND_PERFORMANCE.md).
 
 ### Reference regeneration
 
