@@ -35,8 +35,11 @@ The test harness covers:
 22. Soft-symbol diagnostic cost ordering and original sample positions.
 23. Sample discontinuity handling, EOF, and API lifecycle.
 24. The supplied WAV's observed metadata and 216 opaque voice frames.
+25. WAV header, 8 kHz PCM frame length, gap silence, and omission of opaque calls using a deterministic fake speech decoder.
 
 The synthetic RF generator uses the same RRC coefficient utility as the receiver, so it is not an independent RF oracle. Its burst and symbol streams have known expected content; the external recorded IQ and ETSI/C-decoder vectors provide independent checks at other boundaries. An independently labelled clean standard-FID radio capture remains an open validation gate.
+
+The WAV writer is tested independently of mbelib. Native mbelib speech synthesis and intelligibility have not been checked against a labelled clear-speech recording; the supplied capture is encrypted and produces no eligible PCM frames.
 
 ## Recorded-IQ result
 

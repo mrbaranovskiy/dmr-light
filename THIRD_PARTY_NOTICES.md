@@ -7,7 +7,7 @@ AMBE mapping and Golay generator constants in `src/Dmr/Vocoder/Ambe.cs` are adap
 - [szechyjs/dsd, dmr_const.h](https://github.com/szechyjs/dsd/blob/59423fa46be8b41ef0bd2f3d2b45590600be29f0/include/dmr_const.h), commit `59423fa46be8b41ef0bd2f3d2b45590600be29f0`.
 - [szechyjs/mbelib, ecc_const.h](https://github.com/szechyjs/mbelib/blob/9a04ed5c78176a9965f3d43f7aa1b1f5330e771f/ecc_const.h), and the channel-decoding sequence in `ambe3600x2450.c`, commit `9a04ed5c78176a9965f3d43f7aa1b1f5330e771f`.
 
-The native upstream decoder is downloaded and compiled only by the optional fixture-regeneration tool. It is not linked or shipped with the receiver. The frozen vectors record comparisons with that implementation; they do not imply that encrypted traffic is intelligible.
+The optional fixture-regeneration tool downloads and compiles the native upstream decoder. WAV export can load a user-supplied native mbelib 1.3.0 library at runtime. No native library is linked or shipped with the receiver. The frozen vectors record channel-decoding comparisons; they do not imply that encrypted traffic is intelligible.
 
 ## ISC notices
 

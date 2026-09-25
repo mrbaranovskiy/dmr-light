@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using Dmr;
+using Dmr.Audio;
 using Dmr.Fec;
 using Dmr.Input;
 using Dmr.Protocol;
@@ -14,6 +15,16 @@ void Test(string name,Action action)
     catch(Exception e) { failed++; Console.WriteLine($"FAIL {name}: {e.Message}\n{e.StackTrace}"); }
 }
 string root=Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../../"));
+if(args.Length>0 && args[0]=="--throughput")
+{
+    if(args.Length!=2)
+    {
+        Console.Error.WriteLine("Usage: dotnet run --project tests/Dmr.Tests -c Release -- --throughput output/throughput.json");
+        return 1;
+    }
+    try { Throughput.Run(root,args[1]); return 0; }
+    catch(Exception e) { Console.Error.WriteLine($"Throughput benchmark failed: {e.Message}"); return 1; }
+}
 Test("All ETSI codewords and all single-bit errors",()=>
 {
     foreach(var code in new[]{Codes.Golay20,Codes.Qr16,Codes.Hamming7,Codes.Hamming13,Codes.Hamming15,Codes.Hamming16,Codes.Hamming17})
@@ -78,6 +89,33 @@ Test("AMBE channel adapter against pinned upstream C decoder",()=>
         var decoded=Ambe.Decode(Bits.Unpack(Convert.FromHexString(v.GetProperty("air72").GetString()!)));
         Check(Bits.Hex(decoded.Payload)==v.GetProperty("payload49").GetString(),"Reference AMBE bits differ");
     }
+});
+Test("WAV export preserves frame spacing and excludes opaque calls",()=>
+{
+    string dir=Path.Combine(Path.GetTempPath(),"dmr-audio-"+Guid.NewGuid().ToString("N"));
+    try
+    {
+        using(var wav=new VoiceWavExporter(dir,()=>new FakeAmbeDecoder()))
+        {
+            DmrEvent Frame(string session,long sequence,string? payload) => new(1,sequence,"vocoder_frame","capture",0,0,0,1,session,
+                new Dictionary<string,object?> { ["frame_sequence"]=sequence,["ambe49_hex"]=payload,["corrected_bits"]=0 });
+            wav.Accept(Frame("capture:1",0,null));
+            Check(wav.FilesWritten==0,"Opaque call produced a WAV");
+            wav.Accept(Frame("capture:2",0,"80000000000000"));
+            wav.Accept(new(1,1,"erasure","capture",0,0,0,1,"capture:2",new Dictionary<string,object?> { ["frame_sequence"]=1L }));
+            wav.Accept(Frame("capture:2",3,"80000000000000"));
+            wav.Accept(new(1,4,"call_end","capture",0,0,0,1,"capture:2",new Dictionary<string,object?>()));
+            Check(wav.FilesWritten==1 && wav.FramesWritten==4);
+        }
+        var files=Directory.GetFiles(dir,"*.wav"); Check(files.Length==1);
+        byte[] data=File.ReadAllBytes(files[0]);
+        Check(data.Length==44+4*320 && System.Text.Encoding.ASCII.GetString(data,0,4)=="RIFF");
+        Check(System.Text.Encoding.ASCII.GetString(data,8,4)=="WAVE" && BitConverter.ToInt32(data,24)==8000);
+        Check(BitConverter.ToInt32(data,40)==1280 && BitConverter.ToInt16(data,44)==100);
+        Check(data.AsSpan(44+320,640).ToArray().All(x=>x==0),"Gap was not silent");
+        Check(BitConverter.ToInt16(data,44+960)==100);
+    }
+    finally { if(Directory.Exists(dir)) Directory.Delete(dir,true); }
 });
 Test("Middle voice frame crosses signalling field",()=>
 {
@@ -184,6 +222,19 @@ Test("Noise-only input produces no confirmed calls",()=>
     var rng=new Random(17); var noise=Enumerable.Range(0,48000*2).Select(_=>new Complex(rng.NextDouble()-.5,rng.NextDouble()-.5)).ToArray();
     Check(!Synthetic.Decode(noise).Any(e=>e.Type is "call_start" or "vocoder_frame" or "sync_acquired"));
 });
+Test("Acquisition after prolonged silence survives ring-buffer wrap",()=>
+{
+    Check(clean!=null && baseline!=null);
+    const int silenceSamples=48000*3;
+    var events=new List<DmrEvent>(); var receiver=new DmrReceiver(new(48000),events.Add);
+    receiver.Push(new Complex[silenceSamples]);
+    Check(!events.Any(e=>e.Type is "sync_acquired" or "call_start" or "vocoder_frame"));
+    receiver.Push(clean!.Iq); receiver.Complete();
+    Check(events.Where(e=>e.Type=="vocoder_frame").Select(e=>e.Data["payload_hex"])
+        .SequenceEqual(baseline!.Where(e=>e.Type=="vocoder_frame").Select(e=>e.Data["payload_hex"])),"Delayed acquisition changed voice payloads");
+    Check(events.First(e=>e.Type=="sync_acquired").RfSampleIndex==baseline!.First(e=>e.Type=="sync_acquired").RfSampleIndex+silenceSamples,
+        "Delayed acquisition changed the synchronization position");
+});
 Test("Adjacent DMR carrier is rejected by the channel filter",()=>
 {
     Check(clean!=null);
@@ -245,3 +296,13 @@ Test("Supplied WAV format and observed protocol regression",()=>
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 if(failed==0 && args.Length==2 && args[0]=="--benchmark") Characterization.Run(args[1]);
 return failed==0?0:1;
+
+sealed class FakeAmbeDecoder : IAmbeSpeechDecoder
+{
+    public void Decode(ReadOnlySpan<byte> packedPayload, int correctedBits, Span<short> pcm)
+    {
+        pcm.Fill(packedPayload[0]==0x80?(short)100:(short)200);
+    }
+    public void Reset() { }
+    public void Dispose() { }
+}
