@@ -9,6 +9,17 @@ AMBE mapping and Golay generator constants in `src/Dmr/Vocoder/Ambe.cs` are adap
 
 The native upstream decoder is downloaded and compiled only by the optional fixture-regeneration tool. It is not linked or shipped with the receiver. The frozen vectors record comparisons with that implementation; they do not imply that encrypted traffic is intelligible.
 
+DMRA ARC4 profile behaviour was checked against [lwvmobile/dsd-fme](https://github.com/lwvmobile/dsd-fme/tree/fa4a33258209d2b02c1b9331340869f189582740), commit `fa4a33258209d2b02c1b9331340869f189582740`: `src/dmr_pi.c`, `src/dmr_le.c`, `src/dsd_mbe.c`, and `src/crypt-rc4.c`. Its [COPYRIGHT](https://github.com/lwvmobile/dsd-fme/blob/fa4a33258209d2b02c1b9331340869f189582740/COPYRIGHT) places these files under the DSD ISC notice below. `tools/make_arc4_vectors.py` downloads the pinned sources and compiles the ARC4/LFSR functions under `tmp` to generate synthetic test vectors. No DSD-FME binary is linked or required at runtime. The C# cipher and integration are separately implemented.
+
+ARC4 known-answer values come from [RFC 6229](https://www.rfc-editor.org/rfc/rfc6229.html), by J. Strombergson and S. Josefsson. Copyright (c) 2011 IETF Trust and the persons identified as the document authors. All rights reserved. The following Simplified BSD notice applies to extracted code components, including the test-vector values:
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 ## ISC notices
 
 Copyright (C) 2010 DSD Author

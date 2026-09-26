@@ -1,6 +1,6 @@
 # DMR IQ receiver
 
-A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots. It does not synthesize audio or decrypt privacy-protected traffic.
+A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4 voice decryption. It does not synthesize audio.
 
 ## Build and run
 
@@ -31,6 +31,8 @@ dotnet run --project src/Dmr.Cli -c Release -- capture.cs16 --format cs16 --samp
 Input rates from 24 to 384 ksample/s are accepted. Channelize wider SDR streams before this receiver. WAV input must contain two channels, I then Q, with PCM16/24/32 or float32 samples. Raw input supports interleaved little-endian `cf32`, `cs16`, `cs32`, or unsigned `cu8`. Discriminator-audio WAV is not IQ.
 
 `--chunk-size` changes input buffering, without changing output. `--symbols` includes per-burst symbol values, hard dibits, squared-distance costs for `00,01,10,11`, residual frequency error, and uncalibrated relative power. These costs are not calibrated log likelihoods.
+
+`--privacy-keys keys.local.json` enables known-key DMRA ARC4 decoding when a supported, valid PI header supplies the key ID and message indicator. See [privacy setup, supported profile and validation limits](docs/PRIVACY.md). The default requires no key file and preserves encrypted voice frames.
 
 ## Supplied recording
 
@@ -89,7 +91,7 @@ Each `vocoder_frame` event contains:
 - `channel_decode_valid` and `corrected_bits`: AMBE protected-block decoding results. They are not end-to-end voice integrity or BER measurements.
 - `privacy_status`, `ambe49_status`, and current metadata revision.
 
-The 49-bit candidate is supplied only after a recognized standard LC profile with no indicated privacy and successful channel correction. Some voice bits are unprotected; `voice_crc_available` is always false. Unknown profile, privacy, and vendor frames remain available as raw 72-bit frames. No invented silence is inserted: lost bursts in an established voice stream produce `erasure` events preserving the playout sequence.
+The 49-bit candidate is supplied after a recognized standard LC profile with no indicated privacy, or after supported known-key privacy decoding, and successful channel correction. Decrypted candidates carry `ambe49_status` and `decryption_status` equal to `decrypted_unverified`; a wrong key cannot be detected from FEC success. Privacy profile, algorithm ID, key ID and current message indicator accompany the frames, without key material. Some voice bits are unprotected; `voice_crc_available` is always false. Unsupported profile, privacy, and vendor frames remain available as raw 72-bit frames. No invented silence is inserted: lost bursts in an established voice stream produce `erasure` events preserving the playout sequence.
 
 RF time identifies the burst's first symbol position. All three voice frames in the burst share that RF time; their reconstructed playout offsets differ by 20 ms. Neither quantity claims knowledge of the speaker's original absolute recording time.
 
@@ -103,11 +105,12 @@ RF time identifies the burst's first symbol position. All three voice frames in 
 | Golay SLOT, QR EMB, Hamming TACT, BPTC, RS, CRC checks/masks | Implemented |
 | Voice LC header/terminator, embedded LC, CACH Short LC | Implemented |
 | Conventional CSBK envelope/opcode and data-header fields | Implemented; unknown fields remain raw |
-| 72-bit extraction and AMBE 49-bit channel adapter | Implemented; no speech synthesis/decryption |
+| 72-bit extraction and AMBE 49-bit channel adapter | Implemented; no speech synthesis |
+| Known-key DMRA ARC4 voice decryption | PI-header acquisition, per-track cipher/MI state and loss advancement; reference and synthetic IQ tests |
 | Soft-symbol diagnostic export | Implemented; signalling FEC currently uses hard decisions |
 | Full rate 1/2, 3/4, 1 packet reassembly and Part 3 applications | Deferred M6; burst types/raw payloads retained |
 | Standalone reverse-channel interpretation, MBC semantic reassembly | Deferred; embedded single-fragment content retained in raw bursts |
-| Vendor LC/privacy adapters, SDR device bindings, channel scanning, Tier III | Deferred |
+| Other privacy profiles, encrypted late-entry MI recovery, vendor LC adapters, SDR device bindings, channel scanning, Tier III | Deferred |
 
 See [DMR_DEMODULATOR_PLAN.md](DMR_DEMODULATOR_PLAN.md) for the roadmap and [docs/VALIDATION.md](docs/VALIDATION.md) for evidence and remaining validation gates. The initial voice/metadata path is implemented; the entire roadmap is not claimed complete.
 
@@ -125,6 +128,7 @@ Development-only regeneration tools require Python and `pymupdf`; AMBE reference
 ```powershell
 python tools/generate_spec_tables.py
 python tools/make_reference_vectors.py
+python tools/make_arc4_vectors.py
 ```
 
 Reference revisions and upstream license notices are recorded in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Generated reference fixtures are checked in under `tests/fixtures`; large generated event streams and published binaries live under ignored `output/`.

@@ -17,7 +17,7 @@ The first release should provide a reusable decoding library and an offline comm
 
 The minimum release must handle voice LC headers, voice A-F superframes, embedded LC, terminators, CACH/Short LC, and conventional CSBK messages. Recognize data headers and data-burst types and retain their raw payloads. Complete packet-data reassembly is a subsequent milestone; it is not required to extract voice or basic call metadata.
 
-PCM audio synthesis, privacy decryption, vendor-specific protocols, multi-channel scanning, and Tier III trunk following are outside the first release. Preserve opaque payloads and identifiers so extensions do not require redesigning the receiver.
+PCM audio synthesis, vendor-specific protocols, multi-channel scanning, and Tier III trunk following are outside the first release. The initial privacy-decryption exclusion has been extended by the requested known-key DMRA ARC4 adapter; see [docs/PRIVACY.md](docs/PRIVACY.md) for its supported PI profile, validation and limits. Other privacy methods remain deferred. Preserve opaque payloads and identifiers so extensions do not require redesigning the receiver.
 
 Code must be ready to live-streaming IQ decoding. 
 

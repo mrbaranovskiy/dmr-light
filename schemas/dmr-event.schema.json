@@ -42,7 +42,13 @@
               "voice_crc_available": {"const": false},
               "erasure": {"const": false},
               "ambe49_hex": {"type": ["string", "null"], "pattern": "^[0-9A-F]{12}(00|80)$"},
-              "ambe49_status": {"enum": ["codec_profile_unknown", "privacy_unknown", "opaque_privacy", "opaque_vendor_profile", "unprotected_bits_unverified", "channel_decode_failed"]}
+              "ambe49_status": {"enum": ["codec_profile_unknown", "privacy_unknown", "opaque_privacy", "opaque_vendor_profile", "unprotected_bits_unverified", "channel_decode_failed", "decrypted_unverified"]},
+              "privacy_profile": {"enum": [null, "dmra_arc4"]},
+              "privacy_fid": {"type": ["integer", "null"], "minimum": 0, "maximum": 255},
+              "privacy_algorithm_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 255},
+              "privacy_key_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 255},
+              "privacy_message_indicator": {"type": ["string", "null"], "pattern": "^[0-9A-F]{8}$"},
+              "decryption_status": {"enum": ["not_required", "decrypted_unverified", "missing_parameters", "missing_key", "unsupported_profile", "alignment_lost", "invalid_privacy_header", "channel_decode_failed"]}
             }
           }
         }

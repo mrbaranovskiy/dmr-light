@@ -1,11 +1,13 @@
 using System.Numerics;
 using Dmr.Dsp;
 using Dmr.Protocol;
+using Dmr.Privacy;
 
 namespace Dmr;
 
 public sealed record ReceiverOptions(double SampleRate,double ChannelOffsetHz=0,bool Conjugate=false,
-    string Polarity="auto",string CaptureId="capture",double? CentreFrequencyHz=null,DateTimeOffset? CaptureTime=null,bool EmitSymbols=false);
+    string Polarity="auto",string CaptureId="capture",double? CentreFrequencyHz=null,DateTimeOffset? CaptureTime=null,bool EmitSymbols=false,
+    Arc4Keyring? PrivacyKeys=null);
 
 /// <summary>Streaming IQ receiver. Feed arbitrary chunks using Push; events are emitted synchronously.
 /// Use Discontinuity at known sample gaps. Instances are single-consumer and independent.</summary>
@@ -21,7 +23,7 @@ public sealed class DmrReceiver
     {
         if(options.Polarity is not ("auto" or "normal" or "inverted")) throw new ArgumentException("Polarity must be auto, normal, or inverted.");
         this.options=options;
-        protocol=new(options.SampleRate,sink,options.CaptureId);
+        protocol=new(options.SampleRate,sink,options.CaptureId,options.PrivacyKeys);
         front=MakeFront();
         protocol.Emit("capture_info",0,-1,new() { ["sample_rate"]=options.SampleRate,["channel_offset_hz"]=options.ChannelOffsetHz,
             ["centre_frequency_hz"]=options.CentreFrequencyHz,["capture_time"]=options.CaptureTime,["processing_sample_rate"]=48000 });
