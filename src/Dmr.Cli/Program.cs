@@ -4,6 +4,7 @@ using System.Numerics;
 using Dmr;
 using Dmr.Audio;
 using Dmr.Input;
+using Dmr.Privacy;
 
 try
 {
@@ -15,17 +16,18 @@ try
                    [--offset Hz] [--output events.jsonl] [--chunk-size 8192]
                    [--polarity auto|normal|inverted] [--conjugate] [--symbols]
                    [--centre-frequency Hz] [--capture-time ISO8601]
+                   [--privacy-keys keys.json]
                    [--wav-dir directory --mbelib path-to-native-library]
         WAV input must be stereo IQ (I then Q), not discriminator audio.
         Raw input is interleaved little-endian and requires --sample-rate.
         JSONL is written to stdout unless --output is supplied; summary goes to stderr.
-        --wav-dir writes one 8 kHz mono PCM WAV per clear call.
+        --wav-dir writes one 8 kHz mono PCM WAV per call with eligible voice frames.
         --mbelib supplies the optional native mbelib 1.3 speech decoder.
         """);
         return 0;
     }
     string input=args[0]; var opt=new Dictionary<string,string>(); bool conjugate=false,symbols=false;
-    string[] known=["--format","--sample-rate","--offset","--output","--chunk-size","--polarity","--centre-frequency","--capture-time","--wav-dir","--mbelib"];
+    string[] known=["--format","--sample-rate","--offset","--output","--chunk-size","--polarity","--centre-frequency","--capture-time","--privacy-keys","--wav-dir","--mbelib"];
     for(int i=1;i<args.Length;i++)
     {
         if(args[i]=="--conjugate") { conjugate=true; continue; }
@@ -43,6 +45,10 @@ try
     using var reader=new IqReader(input,Get("--format","wav"),rate);
     string? output=opt.GetValueOrDefault("--output");
     if(output!=null && Path.GetFullPath(output).Equals(Path.GetFullPath(input),StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Output must differ from input.");
+    string? keyFile=opt.GetValueOrDefault("--privacy-keys");
+    if(output!=null && keyFile!=null && Path.GetFullPath(output).Equals(Path.GetFullPath(keyFile),StringComparison.OrdinalIgnoreCase))
+        throw new ArgumentException("Output must differ from the privacy key file.");
+    var keys=keyFile==null ? null : Arc4Keyring.FromJson(File.ReadAllText(keyFile));
     if(output!=null) Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
     using var writer=output!=null?new StreamWriter(output,false,new System.Text.UTF8Encoding(false)):null;
     using var audio=wavDir!=null?new VoiceWavExporter(wavDir,()=>new MbelibSpeechDecoder(mbePath!)):null;
@@ -50,7 +56,7 @@ try
     var counts=new Dictionary<string,int>(); int validated=0;
     var options=new ReceiverOptions(reader.SampleRate,Number("--offset",0),conjugate,Get("--polarity","auto"),Path.GetFileNameWithoutExtension(input),
         opt.ContainsKey("--centre-frequency")?Number("--centre-frequency",0):null,
-        opt.ContainsKey("--capture-time")?DateTimeOffset.Parse(opt["--capture-time"],CultureInfo.InvariantCulture):null,symbols);
+        opt.ContainsKey("--capture-time")?DateTimeOffset.Parse(opt["--capture-time"],CultureInfo.InvariantCulture):null,symbols,keys);
     var watch=Stopwatch.StartNew();
     var receiver=new DmrReceiver(options,e=>
     {

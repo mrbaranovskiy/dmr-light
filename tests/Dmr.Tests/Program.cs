@@ -304,6 +304,7 @@ Test("Supplied WAV format and observed protocol regression",()=>
     Check(events.Count(e=>e.Type=="pdu" && Equals(e.Data.GetValueOrDefault("integrity_valid"),true))==18);
     Check(events.Any(e=>e.Type=="call_update" && Equals(e.Data.GetValueOrDefault("fid"),104)));
 });
+PrivacyTests.Register(Test,root);
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 if(failed==0 && args.Length==2 && args[0]=="--benchmark") Characterization.Run(args[1]);
 return failed==0?0:1;

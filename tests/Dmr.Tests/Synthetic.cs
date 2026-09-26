@@ -4,6 +4,7 @@ using Dmr.Dsp;
 using Dmr.Fec;
 using Dmr.Protocol;
 using Dmr.Vocoder;
+using Dmr.Privacy;
 
 internal static class Synthetic
 {
@@ -23,7 +24,8 @@ internal static class Synthetic
         }
         return [..socket[..108],..center,..socket[108..]];
     }
-    public static Fixture Create(double sampleRate=48000,double carrier=0,double clockPpm=0,double noise=0,bool invert=false,int rounds=30,string mode="bs",int seed=1847)
+    public static Fixture Create(double sampleRate=48000,double carrier=0,double clockPpm=0,double noise=0,bool invert=false,int rounds=30,string mode="bs",int seed=1847,
+        Func<int,int,byte[],byte[]>? replaceBurst=null)
     {
         var rng=new Random(seed); var symbols=new List<double>(10000);
         symbols.AddRange(new double[288]);
@@ -49,6 +51,7 @@ internal static class Synthetic
             }
             else if(voiceRound==24) burst=Burst.MakeLc(lc,7,true,family+"_data");
             else burst=Burst.MakeData(idle,7,9,family+"_data");
+            burst=replaceBurst?.Invoke(round,slot,burst) ?? burst;
             int fragment=physical%4;
             var cach=Burst.MakeCach(slot+1,fragment==0?1:fragment==3?2:3,shortLc.AsSpan(fragment*17,17));
             if(mode!="bs") symbols.AddRange(new double[12]);
@@ -76,9 +79,9 @@ internal static class Synthetic
         return new(iq,expected[0],expected[1]);
     }
     private static double Gaussian(Random rng)=>Math.Sqrt(-2*Math.Log(1-rng.NextDouble()))*Math.Cos(2*Math.PI*rng.NextDouble());
-    public static List<DmrEvent> Decode(Complex[] iq,double rate=48000,double offset=0,int chunk=4096)
+    public static List<DmrEvent> Decode(Complex[] iq,double rate=48000,double offset=0,int chunk=4096,Arc4Keyring? privacyKeys=null)
     {
-        var events=new List<DmrEvent>(); var rx=new DmrReceiver(new(rate,offset),events.Add);
+        var events=new List<DmrEvent>(); var rx=new DmrReceiver(new(rate,offset,PrivacyKeys:privacyKeys),events.Add);
         for(int i=0;i<iq.Length;i+=chunk) rx.Push(iq.AsSpan(i,Math.Min(chunk,iq.Length-i)));
         rx.Complete(); return events;
     }

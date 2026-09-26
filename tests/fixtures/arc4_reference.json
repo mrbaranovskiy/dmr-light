@@ -1,0 +1,677 @@
+{
+  "reference": {
+    "dsd_fme_commit": "fa4a33258209d2b02c1b9331340869f189582740",
+    "note": "Synthetic AMBE parameters, pinned C rc4_voice_decrypt and LFSR. Not a radio capture or speech synthesis test."
+  },
+  "cases": [
+    {
+      "key_id": 7,
+      "key_hex": "0102030405",
+      "initial_mi": "12345678",
+      "frames": [
+        {
+          "index": 0,
+          "message_indicator": "12345678",
+          "ciphertext49": "4A801D851AAF00",
+          "plaintext49": "57BF2B0CCEF980"
+        },
+        {
+          "index": 1,
+          "message_indicator": "12345678",
+          "ciphertext49": "118EC7D7CBCE00",
+          "plaintext49": "01C486E3DF6680"
+        },
+        {
+          "index": 2,
+          "message_indicator": "12345678",
+          "ciphertext49": "4D4D78CD3BC700",
+          "plaintext49": "B6652FB34FA680"
+        },
+        {
+          "index": 3,
+          "message_indicator": "12345678",
+          "ciphertext49": "B57A13671F6B00",
+          "plaintext49": "BB640E524F1200"
+        },
+        {
+          "index": 4,
+          "message_indicator": "12345678",
+          "ciphertext49": "6DA7B6C66E8880",
+          "plaintext49": "4C0AEB32829E00"
+        },
+        {
+          "index": 5,
+          "message_indicator": "12345678",
+          "ciphertext49": "EA2ECA871A6780",
+          "plaintext49": "FA1F245FE1AC80"
+        },
+        {
+          "index": 6,
+          "message_indicator": "12345678",
+          "ciphertext49": "58ACC28C75D180",
+          "plaintext49": "D413130BE05A80"
+        },
+        {
+          "index": 7,
+          "message_indicator": "12345678",
+          "ciphertext49": "1C2ED0726D1080",
+          "plaintext49": "74F04B622F3F00"
+        },
+        {
+          "index": 8,
+          "message_indicator": "12345678",
+          "ciphertext49": "07E1E6B20A2980",
+          "plaintext49": "01B372C33D4E00"
+        },
+        {
+          "index": 9,
+          "message_indicator": "12345678",
+          "ciphertext49": "44F26C374E4080",
+          "plaintext49": "2CD7F5202CB000"
+        },
+        {
+          "index": 10,
+          "message_indicator": "12345678",
+          "ciphertext49": "F213748052A580",
+          "plaintext49": "7DA4A882F70480"
+        },
+        {
+          "index": 11,
+          "message_indicator": "12345678",
+          "ciphertext49": "BF2D7AB02E4C80",
+          "plaintext49": "44813A48702280"
+        },
+        {
+          "index": 12,
+          "message_indicator": "12345678",
+          "ciphertext49": "6B1DD8C1128D80",
+          "plaintext49": "ED54BC3B162C00"
+        },
+        {
+          "index": 13,
+          "message_indicator": "12345678",
+          "ciphertext49": "CB70A21C10C500",
+          "plaintext49": "7F40498CC1D100"
+        },
+        {
+          "index": 14,
+          "message_indicator": "12345678",
+          "ciphertext49": "4F58C69DCD6780",
+          "plaintext49": "A8C6DA22627980"
+        },
+        {
+          "index": 15,
+          "message_indicator": "12345678",
+          "ciphertext49": "64BAC59C841680",
+          "plaintext49": "48AAAFED687780"
+        },
+        {
+          "index": 16,
+          "message_indicator": "12345678",
+          "ciphertext49": "0375A055D50300",
+          "plaintext49": "1C5F93B68C5E80"
+        },
+        {
+          "index": 17,
+          "message_indicator": "12345678",
+          "ciphertext49": "28715F1A9C9980",
+          "plaintext49": "D0DF88390C5A80"
+        },
+        {
+          "index": 18,
+          "message_indicator": "B468E067",
+          "ciphertext49": "2B4B93C5F2FD80",
+          "plaintext49": "231375F74DF000"
+        },
+        {
+          "index": 19,
+          "message_indicator": "B468E067",
+          "ciphertext49": "7DE2462CFBA200",
+          "plaintext49": "C28A5BF3BF2380"
+        },
+        {
+          "index": 20,
+          "message_indicator": "B468E067",
+          "ciphertext49": "9690F8A408AA80",
+          "plaintext49": "BA4F707D171080"
+        },
+        {
+          "index": 21,
+          "message_indicator": "B468E067",
+          "ciphertext49": "822BF4A4B78E80",
+          "plaintext49": "DF6724E7BE1D80"
+        },
+        {
+          "index": 22,
+          "message_indicator": "B468E067",
+          "ciphertext49": "0DFE095A5B7300",
+          "plaintext49": "9962C1CAD19C80"
+        },
+        {
+          "index": 23,
+          "message_indicator": "B468E067",
+          "ciphertext49": "C0CA9B4FB64480",
+          "plaintext49": "7EA76389B6F880"
+        },
+        {
+          "index": 24,
+          "message_indicator": "B468E067",
+          "ciphertext49": "904349C8B4D800",
+          "plaintext49": "E488D805A53B00"
+        },
+        {
+          "index": 25,
+          "message_indicator": "B468E067",
+          "ciphertext49": "7229F04A070700",
+          "plaintext49": "F120EEAD5A5900"
+        },
+        {
+          "index": 26,
+          "message_indicator": "B468E067",
+          "ciphertext49": "C7790BFF8F7F00",
+          "plaintext49": "DFEA9CADA75680"
+        },
+        {
+          "index": 27,
+          "message_indicator": "B468E067",
+          "ciphertext49": "187353040C1900",
+          "plaintext49": "4A56E0B210B580"
+        },
+        {
+          "index": 28,
+          "message_indicator": "B468E067",
+          "ciphertext49": "BC76B29D435480",
+          "plaintext49": "923C9E11118D00"
+        },
+        {
+          "index": 29,
+          "message_indicator": "B468E067",
+          "ciphertext49": "C1D75B33E31800",
+          "plaintext49": "FCC91F51A5FC80"
+        },
+        {
+          "index": 30,
+          "message_indicator": "B468E067",
+          "ciphertext49": "3D645095615900",
+          "plaintext49": "9BE39C93705B00"
+        },
+        {
+          "index": 31,
+          "message_indicator": "B468E067",
+          "ciphertext49": "17B55FD4663600",
+          "plaintext49": "3D2AB4C777C500"
+        },
+        {
+          "index": 32,
+          "message_indicator": "B468E067",
+          "ciphertext49": "6878C90E1F1200",
+          "plaintext49": "E36CC64F871380"
+        },
+        {
+          "index": 33,
+          "message_indicator": "B468E067",
+          "ciphertext49": "F1DBBA00450680",
+          "plaintext49": "69D66849D6BF80"
+        },
+        {
+          "index": 34,
+          "message_indicator": "B468E067",
+          "ciphertext49": "E409B9015D3C80",
+          "plaintext49": "415DF7BEB90F80"
+        },
+        {
+          "index": 35,
+          "message_indicator": "B468E067",
+          "ciphertext49": "CF9B0F96688980",
+          "plaintext49": "DA0EB2416E4F00"
+        }
+      ]
+    },
+    {
+      "key_id": 12,
+      "key_hex": "AAF00D195E",
+      "initial_mi": "DEADBEEF",
+      "frames": [
+        {
+          "index": 0,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "0FCF439DB6B200",
+          "plaintext49": "F562071BABCE00"
+        },
+        {
+          "index": 1,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "B0954A46950780",
+          "plaintext49": "5F0EC85C9BF400"
+        },
+        {
+          "index": 2,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "142B13C6F68A80",
+          "plaintext49": "8CEBC2E12EBD00"
+        },
+        {
+          "index": 3,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "ED21C48F422280",
+          "plaintext49": "BF03983FE98680"
+        },
+        {
+          "index": 4,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "2D566F7D98D300",
+          "plaintext49": "88DDAE885DE800"
+        },
+        {
+          "index": 5,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "E25BA9A0CF1900",
+          "plaintext49": "63890C5E24E700"
+        },
+        {
+          "index": 6,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "C6A96A4FAED280",
+          "plaintext49": "2558BB357D0500"
+        },
+        {
+          "index": 7,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "6D94CE4E737600",
+          "plaintext49": "EA50BC6234CA80"
+        },
+        {
+          "index": 8,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "D0CF67D2C1B400",
+          "plaintext49": "7435E3D31C0380"
+        },
+        {
+          "index": 9,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "0CDD2FD5351000",
+          "plaintext49": "0D151CA51BEA00"
+        },
+        {
+          "index": 10,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "EAD92A363BB980",
+          "plaintext49": "D57F45A11B4C80"
+        },
+        {
+          "index": 11,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "26F4A52CBAD700",
+          "plaintext49": "A5629791408000"
+        },
+        {
+          "index": 12,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "B23B63D8F7A280",
+          "plaintext49": "10065BE6F6DB80"
+        },
+        {
+          "index": 13,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "41D448F3E52B00",
+          "plaintext49": "64577A41A2E300"
+        },
+        {
+          "index": 14,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "99CEF2BEC21400",
+          "plaintext49": "62BF02D8E45680"
+        },
+        {
+          "index": 15,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "F0BFC289561E80",
+          "plaintext49": "DB4251018AF900"
+        },
+        {
+          "index": 16,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "9C1EAF5201BB80",
+          "plaintext49": "8EB5C984383080"
+        },
+        {
+          "index": 17,
+          "message_indicator": "DEADBEEF",
+          "ciphertext49": "7CA099A2215100",
+          "plaintext49": "92720E24B79400"
+        },
+        {
+          "index": 18,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "8A04A749C79980",
+          "plaintext49": "8389F5B353AC00"
+        },
+        {
+          "index": 19,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "E607057F130800",
+          "plaintext49": "AE820B6325FC80"
+        },
+        {
+          "index": 20,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "249104CAF97700",
+          "plaintext49": "CA4592FA1B2880"
+        },
+        {
+          "index": 21,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "E264FC54CF7C00",
+          "plaintext49": "50CCD7C706CD00"
+        },
+        {
+          "index": 22,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "FE1BBE86677280",
+          "plaintext49": "69D337D20A6580"
+        },
+        {
+          "index": 23,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "AA5D0305778000",
+          "plaintext49": "DFDE49D0F0E380"
+        },
+        {
+          "index": 24,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "64C29528379480",
+          "plaintext49": "B27381E41DAE80"
+        },
+        {
+          "index": 25,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "0A46FFA1A85980",
+          "plaintext49": "B360F3CF438100"
+        },
+        {
+          "index": 26,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "CA099807AF9980",
+          "plaintext49": "4F124E9C12D400"
+        },
+        {
+          "index": 27,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "54669583599A80",
+          "plaintext49": "B80A850BDC8800"
+        },
+        {
+          "index": 28,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "D83BA957A4D400",
+          "plaintext49": "260F817F344600"
+        },
+        {
+          "index": 29,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "ACD2FD09A07B80",
+          "plaintext49": "EBF3CB6A20BC80"
+        },
+        {
+          "index": 30,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "416450E3904B00",
+          "plaintext49": "BE6647A8C86900"
+        },
+        {
+          "index": 31,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "EC99B562EF4600",
+          "plaintext49": "8BD23EA938C280"
+        },
+        {
+          "index": 32,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "D5FA9AC0FAA480",
+          "plaintext49": "660F1840846880"
+        },
+        {
+          "index": 33,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "32ABC3DE969500",
+          "plaintext49": "5427B95D0FCC00"
+        },
+        {
+          "index": 34,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "A3C415D449A300",
+          "plaintext49": "FFA3C787D16880"
+        },
+        {
+          "index": 35,
+          "message_indicator": "D65FAFEB",
+          "ciphertext49": "D641F4514E2480",
+          "plaintext49": "919536FD9F4C80"
+        }
+      ]
+    },
+    {
+      "key_id": 0,
+      "key_hex": "0000000000",
+      "initial_mi": "00000000",
+      "frames": [
+        {
+          "index": 0,
+          "message_indicator": "00000000",
+          "ciphertext49": "D5B37A188F2B00",
+          "plaintext49": "EE8CD2275C7E80"
+        },
+        {
+          "index": 1,
+          "message_indicator": "00000000",
+          "ciphertext49": "9DC67672469E80",
+          "plaintext49": "DBE19163125A80"
+        },
+        {
+          "index": 2,
+          "message_indicator": "00000000",
+          "ciphertext49": "AA74404D241780",
+          "plaintext49": "603192936B5700"
+        },
+        {
+          "index": 3,
+          "message_indicator": "00000000",
+          "ciphertext49": "3D4E05208DC100",
+          "plaintext49": "5A2C2CF83FC480"
+        },
+        {
+          "index": 4,
+          "message_indicator": "00000000",
+          "ciphertext49": "670AAFC71FE580",
+          "plaintext49": "46D896857E0E00"
+        },
+        {
+          "index": 5,
+          "message_indicator": "00000000",
+          "ciphertext49": "5C0218338A8F80",
+          "plaintext49": "C245D663BACE80"
+        },
+        {
+          "index": 6,
+          "message_indicator": "00000000",
+          "ciphertext49": "1D3C79CD00FB00",
+          "plaintext49": "F7641BECBAD400"
+        },
+        {
+          "index": 7,
+          "message_indicator": "00000000",
+          "ciphertext49": "01716BDFB79400",
+          "plaintext49": "2706E6647D8180"
+        },
+        {
+          "index": 8,
+          "message_indicator": "00000000",
+          "ciphertext49": "CC8F11C0DC0780",
+          "plaintext49": "34F6C0B5DBF800"
+        },
+        {
+          "index": 9,
+          "message_indicator": "00000000",
+          "ciphertext49": "F1F834AB58EB80",
+          "plaintext49": "86EAFE3AF98C00"
+        },
+        {
+          "index": 10,
+          "message_indicator": "00000000",
+          "ciphertext49": "DC0472C76B0880",
+          "plaintext49": "C3C4E1F7D40180"
+        },
+        {
+          "index": 11,
+          "message_indicator": "00000000",
+          "ciphertext49": "36134191479780",
+          "plaintext49": "83617838539900"
+        },
+        {
+          "index": 12,
+          "message_indicator": "00000000",
+          "ciphertext49": "E34C4D219FB600",
+          "plaintext49": "78087E2007BF00"
+        },
+        {
+          "index": 13,
+          "message_indicator": "00000000",
+          "ciphertext49": "6ECC3AB2D66E00",
+          "plaintext49": "94A37444F4C580"
+        },
+        {
+          "index": 14,
+          "message_indicator": "00000000",
+          "ciphertext49": "12BE0D015E4080",
+          "plaintext49": "808FF72A7FA700"
+        },
+        {
+          "index": 15,
+          "message_indicator": "00000000",
+          "ciphertext49": "8351E003820700",
+          "plaintext49": "6E41FF8C477580"
+        },
+        {
+          "index": 16,
+          "message_indicator": "00000000",
+          "ciphertext49": "9D89696169E600",
+          "plaintext49": "C5E48E58444780"
+        },
+        {
+          "index": 17,
+          "message_indicator": "00000000",
+          "ciphertext49": "A3BCD43DDEA700",
+          "plaintext49": "0DC14A31BC3900"
+        },
+        {
+          "index": 18,
+          "message_indicator": "00000000",
+          "ciphertext49": "BF9EC138D5E980",
+          "plaintext49": "84A1690706BC00"
+        },
+        {
+          "index": 19,
+          "message_indicator": "00000000",
+          "ciphertext49": "9E4BFB8F7C6080",
+          "plaintext49": "D86C1C9E28A480"
+        },
+        {
+          "index": 20,
+          "message_indicator": "00000000",
+          "ciphertext49": "23A88342D4C180",
+          "plaintext49": "E9ED519C9B8100"
+        },
+        {
+          "index": 21,
+          "message_indicator": "00000000",
+          "ciphertext49": "025ECD477B9380",
+          "plaintext49": "653CE49FC99600"
+        },
+        {
+          "index": 22,
+          "message_indicator": "00000000",
+          "ciphertext49": "3F4AE8CB3C3900",
+          "plaintext49": "1E98D1895DD280"
+        },
+        {
+          "index": 23,
+          "message_indicator": "00000000",
+          "ciphertext49": "6D1D8F1AD46D80",
+          "plaintext49": "F35A414AE42C80"
+        },
+        {
+          "index": 24,
+          "message_indicator": "00000000",
+          "ciphertext49": "D4C01EF4FD5780",
+          "plaintext49": "3E987CD5477880"
+        },
+        {
+          "index": 25,
+          "message_indicator": "00000000",
+          "ciphertext49": "AE9A7E397B4C80",
+          "plaintext49": "88EDF382B15900"
+        },
+        {
+          "index": 26,
+          "message_indicator": "00000000",
+          "ciphertext49": "CE8BFBF1931480",
+          "plaintext49": "36F22A8494EB00"
+        },
+        {
+          "index": 27,
+          "message_indicator": "00000000",
+          "ciphertext49": "99258D1C522B80",
+          "plaintext49": "EE37478DF34C00"
+        },
+        {
+          "index": 28,
+          "message_indicator": "00000000",
+          "ciphertext49": "3238AC61BD2F80",
+          "plaintext49": "2DF83F51022680"
+        },
+        {
+          "index": 29,
+          "message_indicator": "00000000",
+          "ciphertext49": "BD9B0566A08580",
+          "plaintext49": "08E93CCFB48B00"
+        },
+        {
+          "index": 30,
+          "message_indicator": "00000000",
+          "ciphertext49": "11C962F27C5A80",
+          "plaintext49": "8A8D51F3E45380"
+        },
+        {
+          "index": 31,
+          "message_indicator": "00000000",
+          "ciphertext49": "2EAD79FFF1E580",
+          "plaintext49": "D4C23709D34E00"
+        },
+        {
+          "index": 32,
+          "message_indicator": "00000000",
+          "ciphertext49": "832091D5EA0380",
+          "plaintext49": "11116BFECBE400"
+        },
+        {
+          "index": 33,
+          "message_indicator": "00000000",
+          "ciphertext49": "B292988A97D700",
+          "plaintext49": "5F82870552A580"
+        },
+        {
+          "index": 34,
+          "message_indicator": "00000000",
+          "ciphertext49": "4DFDB261F14900",
+          "plaintext49": "15905558DCE880"
+        },
+        {
+          "index": 35,
+          "message_indicator": "00000000",
+          "ciphertext49": "072B516EACBA00",
+          "plaintext49": "A956CF62CE2400"
+        }
+      ]
+    }
+  ]
+}

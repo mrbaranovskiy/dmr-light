@@ -35,7 +35,19 @@ The test harness covers:
 22. Soft-symbol diagnostic cost ordering and original sample positions.
 23. Sample discontinuity handling, EOF, and API lifecycle.
 24. The supplied WAV's observed metadata and 216 opaque voice frames.
-25. WAV header, 8 kHz PCM frame length, gap silence, and omission of opaque calls using a deterministic fake speech decoder.
+25. RFC 6229 ARC4 known answers at byte offsets 0, 256 and 4096.
+26. Key file validation, key ownership and error-message disclosure checks.
+27. 108 DMRA ARC4 frames from a separately compiled pinned C reference, including MI evolution and an all-zero key.
+28. Valid PI acquisition and two slots with independent keys and message indicators.
+29. Keystream advancement across missing B, F and A bursts and failed channel decoding.
+30. Missing/wrong keys, absent PI headers and unsupported algorithm/vendor profiles.
+31. Bad PI rejection, phase mismatch, re-acquisition and context reset on discontinuity.
+32. Synthetic encrypted IQ through decrypted frames, identical output for two chunk sizes, and a JSONL output fixture.
+33. WAV header, 8 kHz PCM frame length, gap silence, and omission of opaque calls using a deterministic fake speech decoder.
+34. Resampling at input-rate limits preserves both slots across ring-buffer wraps.
+35. Acquisition after prolonged silence survives ring-buffer wrap.
+
+All 35 groups pass. Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
 
 The synthetic RF generator uses the same RRC coefficient utility as the receiver, so it is not an independent RF oracle. Its burst and symbol streams have known expected content; the external recorded IQ and ETSI/C-decoder vectors provide independent checks at other boundaries. An independently labelled clean standard-FID radio capture remains an open validation gate.
 
