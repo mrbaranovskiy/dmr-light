@@ -43,10 +43,15 @@ The test harness covers:
 30. Missing/wrong keys, absent PI headers and unsupported algorithm/vendor profiles.
 31. Bad PI rejection, phase mismatch, re-acquisition and context reset on discontinuity.
 32. Synthetic encrypted IQ through decrypted frames, identical output for two chunk sizes, and a JSONL output fixture.
+33. WAV header, 8 kHz PCM frame length, gap silence, and omission of opaque calls using a deterministic fake speech decoder.
+34. Resampling at input-rate limits preserves both slots across ring-buffer wraps.
+35. Acquisition after prolonged silence survives ring-buffer wrap.
 
-All 32 groups pass. Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
+All 35 groups pass. Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
 
 The synthetic RF generator uses the same RRC coefficient utility as the receiver, so it is not an independent RF oracle. Its burst and symbol streams have known expected content; the external recorded IQ and ETSI/C-decoder vectors provide independent checks at other boundaries. An independently labelled clean standard-FID radio capture remains an open validation gate.
+
+The WAV writer is tested independently of mbelib. Native mbelib speech synthesis and intelligibility have not been checked against a labelled clear-speech recording; the supplied capture is encrypted and produces no eligible PCM frames.
 
 ## Recorded-IQ result
 

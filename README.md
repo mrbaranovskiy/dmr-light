@@ -1,10 +1,10 @@
 # DMR IQ receiver
 
-A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4 voice decryption. It does not synthesize audio.
+A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4 voice decryption. Optional WAV export uses an externally supplied mbelib speech decoder.
 
 ## Build and run
 
-Requires the .NET 8 SDK (8.0.300 or a later 8.0 feature band, selected by `global.json`). There are no runtime NuGet packages, native libraries, FFTW dependencies, or network calls.
+Requires the .NET 8 SDK (8.0.300 or a later 8.0 feature band, selected by `global.json`). Normal event extraction has no runtime NuGet packages, native libraries, FFTW dependencies, or network calls. WAV export additionally requires a user-supplied mbelib library.
 
 ```powershell
 dotnet build Dmr.sln -c Release
@@ -26,6 +26,14 @@ dotnet run --project src/Dmr.Cli -c Release -- capture.cf32 --format cf32 --samp
 dotnet run --project src/Dmr.Cli -c Release -- capture.cs16 --format cs16 --sample-rate 48000 --output output/capture.jsonl
 ```
 
+For clear standard-profile voice, supply a native [mbelib 1.3.0](https://github.com/szechyjs/mbelib) library and request WAV files:
+
+```powershell
+dotnet run --project src/Dmr.Cli -c Release -- clear_capture.wav --offset -12500 --output output/clear.jsonl --wav-dir output/audio --mbelib C:\path\to\mbelib.dll
+```
+
+The library is loaded only when WAV export is requested. WAV files are mono 16-bit PCM at 8 kHz, one per call and track. Missing or ineligible frames within an active WAV are silent for 20 ms; calls with no eligible frames produce no WAV. File names include the capture and session IDs. On Linux or macOS, pass the path to the corresponding shared library. The native library and its dependencies must match the process architecture. The receiver does not download or ship mbelib.
+
 `--offset` is the selected carrier's frequency relative to IQ centre, in Hz; positive means above centre. It is required when the signal is off-centre. Automatic channel discovery is not implemented. `--centre-frequency` optionally records the capture's absolute centre frequency. `--capture-time` records an ISO 8601 start time. DSP polarity is resolved automatically using validated signalling; `--polarity normal|inverted` constrains that decision. `--conjugate` conjugates IQ before frequency translation.
 
 Input rates from 24 to 384 ksample/s are accepted. Channelize wider SDR streams before this receiver. WAV input must contain two channels, I then Q, with PCM16/24/32 or float32 samples. Raw input supports interleaved little-endian `cf32`, `cs16`, `cs32`, or unsigned `cu8`. Discriminator-audio WAV is not IQ.
@@ -33,6 +41,8 @@ Input rates from 24 to 384 ksample/s are accepted. Channelize wider SDR streams 
 `--chunk-size` changes input buffering, without changing output. `--symbols` includes per-burst symbol values, hard dibits, squared-distance costs for `00,01,10,11`, residual frequency error, and uncalibrated relative power. These costs are not calibrated log likelihoods.
 
 `--privacy-keys keys.local.json` enables known-key DMRA ARC4 decoding when a supported, valid PI header supplies the key ID and message indicator. See [privacy setup, supported profile and validation limits](docs/PRIVACY.md). The default requires no key file and preserves encrypted voice frames.
+
+Combine `--privacy-keys` with `--wav-dir` and `--mbelib` to export decrypted voice candidates as WAV. These candidates remain unverified: an incorrect key cannot be detected from channel correction success.
 
 ## Supplied recording
 
@@ -43,7 +53,7 @@ Input rates from 24 to 384 ksample/s are accepted. Channelize wider SDR streams 
 - Colour code 15; mobile-station sync; absolute slot number unavailable.
 - Feature ID `0x68`, FLCO `0`, and raw LC `0068400044C000418C`.
 
-The user identifies this capture as encrypted. Its manufacturer-specific LC is preserved as opaque: the receiver does not assume that its source/destination field layout is the standardized layout. Source and destination IDs remain null, privacy status is `unknown_vendor`, and `ambe49_hex` is null. This intentionally preserves the channel frames for a downstream vendor/privacy adapter. The file is a regression fixture, not an independently labelled RF conformance recording.
+The user identifies this capture as encrypted. Its manufacturer-specific LC is preserved as opaque: the receiver does not assume that its source/destination field layout is the standardized layout. Source and destination IDs remain null, privacy status is `unknown_vendor`, and `ambe49_hex` is null. WAV export produces no audio files from this capture. The raw channel frames remain available for a downstream vendor/privacy adapter. The file is a regression fixture, not an independently labelled RF conformance recording.
 
 ## Streaming API
 
@@ -105,8 +115,9 @@ RF time identifies the burst's first symbol position. All three voice frames in 
 | Golay SLOT, QR EMB, Hamming TACT, BPTC, RS, CRC checks/masks | Implemented |
 | Voice LC header/terminator, embedded LC, CACH Short LC | Implemented |
 | Conventional CSBK envelope/opcode and data-header fields | Implemented; unknown fields remain raw |
-| 72-bit extraction and AMBE 49-bit channel adapter | Implemented; no speech synthesis |
+| 72-bit extraction and AMBE 49-bit channel adapter | Implemented |
 | Known-key DMRA ARC4 voice decryption | PI-header acquisition, per-track cipher/MI state and loss advancement; reference and synthetic IQ tests |
+| WAV export for eligible clear or decrypted voice frames | Implemented with externally supplied mbelib 1.3.0 |
 | Soft-symbol diagnostic export | Implemented; signalling FEC currently uses hard decisions |
 | Full rate 1/2, 3/4, 1 packet reassembly and Part 3 applications | Deferred M6; burst types/raw payloads retained |
 | Standalone reverse-channel interpretation, MBC semantic reassembly | Deferred; embedded single-fragment content retained in raw bursts |
@@ -122,6 +133,31 @@ The dependency-free console test harness returns a nonzero exit code on failure.
 dotnet run --project tests/Dmr.Tests -c Release
 dotnet run --project tests/Dmr.Tests -c Release -- --benchmark output/characterization.json
 ```
+
+### Processing throughput
+
+For nonempty input, the CLI prints the input rate, processing rate, real-time multiple, and processing milliseconds per second of input to stderr:
+
+```powershell
+dotnet run --project src/Dmr.Cli -c Release -- dmr_test.wav --offset -12500 --output output/rate-events.jsonl
+dotnet run --project tests/Dmr.Tests -c Release -- --throughput output/throughput.json
+```
+
+For `N` IQ sample pairs at input rate `Fs` and measured wall time `T` seconds:
+
+- Input duration = `N / Fs` seconds.
+- Processing rate = `N / T` IQ samples/second.
+- Real-time multiple = `(N / Fs) / T`. Above `1x` keeps up with input on average; `10x` means one second of input takes 100 ms to process.
+- Processing milliseconds per input second = `1000 * T / (N / Fs)`. Below 1000 ms keeps up on average. This is wall time, not CPU utilization.
+
+The CLI timing includes receiver initialization, file reading, decoding, JSONL writing/flushing, and WAV completion when enabled; it excludes application startup and opening the input/output files. Output callbacks therefore affect this rate.
+
+`--throughput` runs independently of the correctness suite. It replays the supplied recording and synthetic two-slot traffic at 48, 96, 192, and 384 ksample/s, with two warm-ups and five measured runs per case. Each replay uses a fresh receiver and 8192-sample chunks, and checks the processed sample and recovered voice-frame counts. Console output and the JSON report include median timing, min/max timing, and rates; JSON also retains every measured run and runtime details. These measurements include receiver initialization and event counting, but exclude input loading/generation, JSON serialization, file output, and speech synthesis. Run on an otherwise idle machine in Release mode. Average throughput does not establish worst-case chunk latency or guarantee drop-free live reception.
+
+Measured acquisition optimization results and validation are recorded in [docs/FRAMER_PERFORMANCE.md](docs/FRAMER_PERFORMANCE.md).
+Resampling optimization results, including input-rate comparisons, are recorded in [docs/FRONTEND_PERFORMANCE.md](docs/FRONTEND_PERFORMANCE.md).
+
+### Reference regeneration
 
 Development-only regeneration tools require Python and `pymupdf`; AMBE reference regeneration also needs GCC and network access. These tools are not part of the receiver's runtime or normal test execution:
 
