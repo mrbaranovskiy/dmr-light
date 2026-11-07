@@ -8,7 +8,7 @@
   "properties": {
     "schema_version": {"const": 1},
     "sequence": {"type": "integer", "minimum": 0},
-    "type": {"enum": ["capture_info", "sync_acquired", "sync_lost", "burst", "symbols", "pdu", "control", "data_header", "diagnostic", "call_start", "call_update", "call_end", "vocoder_frame", "erasure"]},
+    "type": {"enum": ["capture_info", "sync_acquired", "sync_lost", "burst", "symbols", "pdu", "control", "data_header", "diagnostic", "call_start", "call_update", "call_end", "vocoder_frame", "erasure", "talker_alias", "location", "data_packet", "text_message"]},
     "capture_id": {"type": "string"},
     "rf_sample_index": {"type": "integer", "minimum": 0},
     "rf_time_seconds": {"type": "number", "minimum": 0},
@@ -49,6 +49,91 @@
               "privacy_key_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 255},
               "privacy_message_indicator": {"type": ["string", "null"], "pattern": "^[0-9A-F]{8}$"},
               "decryption_status": {"enum": ["not_required", "decrypted_unverified", "missing_parameters", "missing_key", "unsupported_profile", "alignment_lost", "invalid_privacy_header", "channel_decode_failed"]}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "talker_alias"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "required": ["source_id", "alias", "format", "declared_length", "blocks_received", "complete", "raw_hex"],
+            "properties": {
+              "source_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 16777215},
+              "alias": {"type": "string"},
+              "format": {"enum": ["7bit", "iso8", "utf8", "utf16be"]},
+              "declared_length": {"type": "integer", "minimum": 0, "maximum": 31},
+              "blocks_received": {"type": "array", "items": {"enum": [0, 1, 2, 3]}, "uniqueItems": true},
+              "complete": {"type": "boolean"},
+              "raw_hex": {"type": "string", "pattern": "^[0-9A-F]{56}$"},
+              "provenance": {"enum": ["embedded_lc", "voice_lc_header", "terminator_lc"]}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "location"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "required": ["latitude", "longitude", "position_error", "source", "source_id", "raw_hex"],
+            "properties": {
+              "latitude": {"type": "number", "minimum": -90, "maximum": 90},
+              "longitude": {"type": "number", "minimum": -180, "maximum": 180},
+              "position_error": {"type": ["integer", "null"], "minimum": 0, "maximum": 7},
+              "source": {"type": "string"},
+              "source_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 16777215},
+              "raw_hex": {"type": "string", "pattern": "^[0-9A-F]*$"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "data_packet"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "required": ["source_id", "destination_id", "group", "sap", "dpf", "confirmed", "rate", "blocks", "crc_valid", "bytes_hex", "complete", "header_hex"],
+            "properties": {
+              "source_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 16777215},
+              "destination_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 16777215},
+              "group": {"type": "boolean"},
+              "sap": {"type": "integer", "minimum": 0, "maximum": 15},
+              "dpf": {"type": "integer", "minimum": 0, "maximum": 15},
+              "confirmed": {"type": "boolean"},
+              "rate": {"enum": ["half", "three_quarters", "one"]},
+              "blocks": {"type": "integer", "minimum": 0},
+              "crc_valid": {"type": "boolean"},
+              "bytes_hex": {"type": "string", "pattern": "^([0-9A-F]{2})*$"},
+              "complete": {"type": "boolean"},
+              "header_hex": {"type": "string", "pattern": "^[0-9A-F]{20}$"},
+              "blocks_hex": {"type": "string", "pattern": "^([0-9A-F]{2})*$"},
+              "application": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"type": {"const": "text_message"}}},
+      "then": {
+        "properties": {
+          "data": {
+            "required": ["source_id", "destination_id", "group", "text", "encoding", "protocol", "port", "crc_valid"],
+            "properties": {
+              "source_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 16777215},
+              "destination_id": {"type": ["integer", "null"], "minimum": 0, "maximum": 16777215},
+              "group": {"type": "boolean"},
+              "text": {"type": "string"},
+              "encoding": {"type": "string"},
+              "protocol": {"enum": ["etsi_short_data", "etsi_udt", "motorola_tms", "hytera", "ip_udp_text"]},
+              "port": {"type": ["integer", "null"], "minimum": 0, "maximum": 65535},
+              "crc_valid": {"type": "boolean"},
+              "confidence": {"enum": ["high", "low"]}
             }
           }
         }
