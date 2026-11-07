@@ -55,8 +55,14 @@ public static class Burst
     }
     public static byte[] MakeData(byte[] payload96, int colourCode, int type, string sync = "bs_data")
     {
-        var info = ProductCodes.Encode196(payload96); var slot = Codes.Golay20.EncodeBits((uint)((colourCode << 4) | type));
-        return [.. info[..98], .. slot[..10], .. Sync(sync), .. slot[10..], .. info[98..]];
+        return MakeInfo(ProductCodes.Encode196(payload96), colourCode, type, sync);
+    }
+    /// <summary>Builds a data burst around 196 already coded info bits (for example rate 3/4 trellis or rate 1 blocks).</summary>
+    public static byte[] MakeInfo(byte[] info196, int colourCode, int type, string sync = "bs_data")
+    {
+        if (info196.Length != 196) throw new ArgumentException("Expected 196 info bits.");
+        var slot = Codes.Golay20.EncodeBits((uint)((colourCode << 4) | type));
+        return [.. info196[..98], .. slot[..10], .. Sync(sync), .. slot[10..], .. info196[98..]];
     }
     public static byte[] MakeLc(byte[] lcBytes, int colourCode, bool terminator = false, string sync = "bs_data")
     {

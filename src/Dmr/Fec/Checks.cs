@@ -13,6 +13,45 @@ public static class Checks
         }
         return (value ^ finalXor) & mask;
     }
+    /// <summary>TS 102 361-1 B.3.9 message CRC over user data and pad octets, in transmitted order. The octets are fed
+    /// as 16-bit words, least significant (second) octet first; polynomial 04C11DB7, initial remainder 0.</summary>
+    public static uint DataCrc32(ReadOnlySpan<byte> octets)
+    {
+        uint crc = 0;
+        for (int i = 0; i < octets.Length; i += 2)
+        {
+            if (i + 1 < octets.Length) crc = Crc32Octet(crc, octets[i + 1]);
+            crc = Crc32Octet(crc, octets[i]);
+        }
+        return crc;
+    }
+    private static uint Crc32Octet(uint crc, byte octet)
+    {
+        for (int b = 7; b >= 0; b--)
+        {
+            uint feedback = (crc >> 31) ^ (uint)((octet >> b) & 1);
+            crc <<= 1;
+            if (feedback != 0) crc ^= 0x04C11DB7u;
+        }
+        return crc;
+    }
+    /// <summary>The message CRC as carried in the last four octets of a packet: least significant octet first (B.3.9, figure B.8C).</summary>
+    public static uint ReadDataCrc32(ReadOnlySpan<byte> four) => (uint)(four[0] | (four[1] << 8) | (four[2] << 16) | (four[3] << 24));
+    /// <summary>TS 102 361-1 B.3.10 CRC-9 of a confirmed block: block data then the 7-bit serial number, G9 = x9+x6+x4+x3+1,
+    /// inverted. The caller applies the data type mask (B.3.12: 0F0 rate 1/2, 1FF rate 3/4, 10F rate 1).</summary>
+    public static int Crc9(ReadOnlySpan<byte> blockData, int serial)
+    {
+        int crc = 0;
+        void Bit(int bit)
+        {
+            int feedback = ((crc >> 8) ^ bit) & 1;
+            crc = (crc << 1) & 0x1FF;
+            if (feedback != 0) crc ^= 0x059;
+        }
+        foreach (byte octet in blockData) for (int b = 7; b >= 0; b--) Bit((octet >> b) & 1);
+        for (int b = 6; b >= 0; b--) Bit((serial >> b) & 1);
+        return crc ^ 0x1FF;
+    }
     private static readonly byte[][] RsRows =
     [
         [0x1c,0xbc,0xfd], [0x89,0x31,0x08], [0xad,0x41,0x36],
