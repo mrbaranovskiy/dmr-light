@@ -1,20 +1,26 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 
 namespace Dmr.Dsp;
 
 /// <summary>Phase-continuous mixer, polyphase windowed-sinc channel resampler, FM discriminator,
-/// and RRC receive filter. Output is a fixed 48 kHz stream; no chunk-local operations.</summary>
+/// and RRC receive filter. Output is a fixed 48 kHz stream; no chunk-local operations.
+/// The resampler's polyphase table depends only on the sample rate and is shared by every instance at that rate.</summary>
 internal sealed class FrontEnd
 {
     private const int Phases=1024;
+    private static readonly ConcurrentDictionary<double,double[][]> TapCache=new();
+    private static readonly double[] PulseCoefficients=Filters.RootRaisedCosine();
+    private static readonly double[] PowerCoefficients=Enumerable.Repeat(1.0/101,101).ToArray();
     private readonly int half, ringMask;
-    private readonly double[][] taps=new double[Phases][];
+    private readonly double[][] taps;
     private readonly Complex[] ring;
-    private readonly double step, mixStep;
+    private readonly double step, sampleRate;
+    private double mixStep;
     private readonly bool conjugate;
     private readonly Action<double,double> output;
-    private readonly Fir pulse=new(Filters.RootRaisedCosine());
-    private readonly Fir power=new(Enumerable.Repeat(1.0/101,101).ToArray());
+    private readonly Fir pulse=new(PulseCoefficients);
+    private readonly Fir power=new(PowerCoefficients);
     private long count=-1,lastNonFinite=-1;
     private double next,phase;
     private Complex previous;
@@ -22,12 +28,21 @@ internal sealed class FrontEnd
     public FrontEnd(double sampleRate,double offset,bool conjugate,Action<double,double> output)
     {
         if(!double.IsFinite(sampleRate)||sampleRate<24000 || sampleRate>384000) throw new ArgumentOutOfRangeException(nameof(sampleRate),"Sample rate must be 24 to 384 kHz; channelize wider SDR streams first.");
-        if(!double.IsFinite(offset)||Math.Abs(offset)+6500>=sampleRate/2) throw new ArgumentOutOfRangeException(nameof(offset),"Channel passband must lie inside the capture.");
-        step=sampleRate/48000; mixStep=-2*Math.PI*offset/sampleRate; this.output=output; this.conjugate=conjugate;
+        CheckOffset(sampleRate,offset);
+        this.sampleRate=sampleRate; step=sampleRate/48000; mixStep=-2*Math.PI*offset/sampleRate; this.output=output; this.conjugate=conjugate;
         half=(int)Math.Ceiling(48*Math.Max(1,step));
         int ringSize=1; while(ringSize<4*half) ringSize*=2;
         // Mirror each write so a resampling window is contiguous even across ring wrap.
         ring=new Complex[2*ringSize]; ringMask=ringSize-1;
+        taps=TapCache.GetOrAdd(sampleRate,static (rate,h)=>MakeTaps(rate,h),half);
+    }
+    private static void CheckOffset(double sampleRate,double offset)
+    {
+        if(!double.IsFinite(offset)||Math.Abs(offset)+6500>=sampleRate/2) throw new ArgumentOutOfRangeException(nameof(offset),"Channel passband must lie inside the capture.");
+    }
+    private static double[][] MakeTaps(double sampleRate,int half)
+    {
+        var taps=new double[Phases][];
         // Cutoff includes the FM spectrum, distinct from the post-discriminator RRC.
         double cutoff=6500/sampleRate;
         for(int p=0;p<Phases;p++)
@@ -42,6 +57,15 @@ internal sealed class FrontEnd
             }
             for(int k=0;k<2*half;k++) taps[p][k]/=sum;
         }
+        return taps;
+    }
+    /// <summary>Returns to the state of a new instance at the same sample rate, without allocating.</summary>
+    public void Reset(double offset)
+    {
+        CheckOffset(sampleRate,offset);
+        mixStep=-2*Math.PI*offset/sampleRate;
+        Array.Clear(ring); count=-1; lastNonFinite=-1; next=0; phase=0; previous=Complex.Zero;
+        pulse.Reset(); power.Reset();
     }
     public void Push(Complex value)
     {

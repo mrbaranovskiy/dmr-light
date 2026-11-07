@@ -81,6 +81,16 @@ receiver.Complete();
 
 The channel resampler, mixer, pulse filter, acquisition state, slot state, and fragment assemblers retain state across calls. Frequency/timing estimation uses sync-assisted acquisition and constrained per-burst decision-directed timing. Receiver memory is bounded independently of capture duration. A blocking callback delays reception, so applications should keep callbacks short or enqueue events.
 
+A receiver can be reused, for example from a pool of demodulators that a scanner binds to whichever channel is active:
+
+```csharp
+// Ends any open calls with reason "eof", then behaves exactly like a new receiver with these options.
+receiver.Reset(new ReceiverResetOptions(CaptureId: "session-7-ch412", ChannelOffsetHz: 0,
+    CentreFrequencyHz: 433_512_500, CaptureTime: DateTimeOffset.UtcNow));
+```
+
+`Reset` and `Discontinuity` reuse the receiver's storage; they allocate only the event they emit (`capture_info` or `sync_lost`). The sample rate, polarity, conjugation, symbol output and privacy keys stay those the receiver was constructed with. The resampler's polyphase table depends only on the sample rate and is shared by all receivers at that rate, so a receiver's own state is about 1 MiB (mostly the framer's history), and construction takes well under a millisecond after the first receiver at a rate.
+
 At EOF, the library closes sessions with reason `eof`. It does not synthesize future samples to complete a burst that still needs filter context. A call may end with `terminator`, `new_header`, `identity_changed`, `data_transition`, `sync_lost`, or `discontinuity`.
 
 For already aligned bursts, use `Dmr.Protocol.ProtocolDecoder.Process`. Inputs are 264 unpacked bits, first transmitted bit first. The caller supplies the track, optional absolute slot, original sample position, and burst kind (`bs_voice`, `bs_data`, `ms_voice`, `ms_data`, `direct1_voice`, etc., or `embedded`). This path is independently testable without DSP.

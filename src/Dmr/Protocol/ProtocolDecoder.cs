@@ -26,12 +26,21 @@ public sealed class ProtocolDecoder
         public string DecryptionStatus = "missing_parameters";
         public readonly List<byte> Embedded = new();
         public Dictionary<string,object?> Metadata = new();
+        /// <summary>Back to the state of a new instance, keeping the collections' storage.</summary>
+        public void Clear()
+        {
+            Session=null; Slot=null; Colour=null; Source=null; Destination=null; CallType=null;
+            Privacy="unknown"; Phase=-1; Revision=0; Frame=0; LastSample=0;
+            VoiceActive=false; UnknownFeature=false; StandardFeature=false;
+            Cipher=null; PrivacyFid=null; AlgorithmId=null; KeyId=null; PrivacyProfile=null;
+            DecryptionStatus="missing_parameters"; Embedded.Clear(); Metadata.Clear();
+        }
     }
     private readonly TrackState[] tracks = [new(),new()];
     private readonly List<byte> shortLc = new();
     private readonly Action<DmrEvent> sink;
     private readonly double sampleRate;
-    private readonly string captureId;
+    private string captureId;
     private readonly Arc4Keyring? privacyKeys;
     private long sequence, sessions, burstId;
     public ProtocolDecoder(double sampleRate, Action<DmrEvent> sink, string captureId = "capture", Arc4Keyring? privacyKeys = null)
@@ -273,8 +282,17 @@ public sealed class ProtocolDecoder
     }
     public void Reset(long sample,string reason="discontinuity")
     {
-        for(int i=0;i<2;i++) { End(i,sample,reason); tracks[i]=new(); }
+        for(int i=0;i<2;i++) { End(i,sample,reason); tracks[i].Clear(); }
         shortLc.Clear();
+    }
+    /// <summary>
+    /// Starts over as a new decoder for <paramref name="newCaptureId"/>: sequence, session and burst numbering from zero,
+    /// no track state. Emits nothing and allocates nothing; close open calls first with <see cref="Reset"/> or <see cref="Complete"/>.
+    /// </summary>
+    public void Restart(string newCaptureId)
+    {
+        captureId=newCaptureId; sequence=0; sessions=0; burstId=0;
+        tracks[0].Clear(); tracks[1].Clear(); shortLc.Clear();
     }
     public void Complete(long sample) => Reset(sample,"eof");
 }

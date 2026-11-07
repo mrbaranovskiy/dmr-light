@@ -29,4 +29,5 @@ internal sealed class Fir(double[] coefficients)
         if(++head==memory.Length) head=0;
         return result;
     }
+    public void Reset() { Array.Clear(memory); head=0; }
 }

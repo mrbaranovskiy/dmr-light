@@ -9,7 +9,7 @@ internal sealed class Framer
     private readonly double[] frequency=new double[Capacity],power=new double[Capacity];
     private readonly ProtocolDecoder protocol;
     private readonly double inputRate;
-    private readonly long origin;
+    private long origin;
     private readonly string polarity;
     private readonly bool emitSymbols;
     private readonly int?[] knownSlots=new int?[2];
@@ -22,15 +22,22 @@ internal sealed class Framer
     private string family="";
     private sealed record Pattern(string Family,double[] Symbols,double Mean,double Energy);
     private sealed record Candidate(double Start,Pattern Pattern,double Gain,double Offset,double Score);
-    private readonly Pattern[] patterns;
+    // Constant sync references, shared by every instance.
+    private static readonly Pattern[] patterns=new[]{"bs","ms","direct1","direct2"}.Select(f=>
+    {
+        var b=Burst.Sync(f+"_voice"); var symbols=Enumerable.Range(0,24).Select(i=>b[2*i]==0?3.0:-3.0).ToArray();
+        double mean=symbols.Average(); return new Pattern(f,symbols,mean,symbols.Sum(x=>(x-mean)*(x-mean)));
+    }).ToArray();
     public Framer(double inputRate,long origin,ProtocolDecoder protocol,string polarity,bool emitSymbols=false)
     {
         this.inputRate=inputRate; this.origin=origin; this.protocol=protocol; this.polarity=polarity; this.emitSymbols=emitSymbols;
-        patterns=new[]{"bs","ms","direct1","direct2"}.Select(f=>
-        {
-            var b=Burst.Sync(f+"_voice"); var symbols=Enumerable.Range(0,24).Select(i=>b[2*i]==0?3.0:-3.0).ToArray();
-            double mean=symbols.Average(); return new Pattern(f,symbols,mean,symbols.Sum(x=>(x-mean)*(x-mean)));
-        }).ToArray();
+    }
+    /// <summary>Returns to the state of a new instance whose first sample is at <paramref name="newOrigin"/>, without allocating.</summary>
+    public void Reset(long newOrigin)
+    {
+        origin=newOrigin; index=-1; locked=false; candidates.Clear(); Array.Clear(knownSlots);
+        Array.Clear(frequency); Array.Clear(power);
+        nextStart=0; gain=0; offset=0; symbolStep=10; lastSyncStart=0; nextOrdinal=0; misses=0; family="";
     }
     private double At(double t)
     {

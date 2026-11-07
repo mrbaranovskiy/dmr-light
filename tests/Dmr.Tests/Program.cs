@@ -304,6 +304,58 @@ Test("Supplied WAV format and observed protocol regression",()=>
     Check(events.Count(e=>e.Type=="pdu" && Equals(e.Data.GetValueOrDefault("integrity_valid"),true))==18);
     Check(events.Any(e=>e.Type=="call_update" && Equals(e.Data.GetValueOrDefault("fid"),104)));
 });
+Test("Reset receiver emits exactly what a new receiver emits",()=>
+{
+    Check(clean!=null);
+    List<string> Fresh(ReceiverOptions o,Complex[] iq,int chunk)
+    {
+        var events=new List<DmrEvent>(); var rx=new DmrReceiver(o,events.Add);
+        for(int i=0;i<iq.Length;i+=chunk) rx.Push(iq.AsSpan(i,Math.Min(chunk,iq.Length-i)));
+        rx.Complete(); return events.Select(e=>e.ToJson()).ToList();
+    }
+    // Synthetic two-slot traffic: the reused receiver first stops in the middle of calls, then is reset.
+    var expected=Fresh(new(48000,CaptureId:"second"),clean!.Iq,4096);
+    var seen=new List<DmrEvent>(); var r=new DmrReceiver(new(48000,CaptureId:"first"),seen.Add);
+    r.Push(clean.Iq.AsSpan(0,40000)); r.Discontinuity(500); r.Push(clean.Iq.AsSpan(41000,30000));
+    r.Complete(); Check(seen.Any(e=>e.Type=="call_end" && Equals(e.Data["reason"],"eof")),"Open calls must end before reuse");
+    seen.Clear(); r.Reset(new("second"));
+    for(int i=0;i<clean.Iq.Length;i+=4096) r.Push(clean.Iq.AsSpan(i,Math.Min(4096,clean.Iq.Length-i)));
+    r.Complete();
+    var got=seen.Select(e=>e.ToJson()).ToList();
+    int diff=Enumerable.Range(0,Math.Min(got.Count,expected.Count)).FirstOrDefault(i=>got[i]!=expected[i],-1);
+    Check(got.Count==expected.Count && diff<0,$"Reset receiver differs from a new one (synthetic): counts {got.Count}/{expected.Count}, first difference at {diff}:\n got {(diff>=0?got[diff]:"")}\n new {(diff>=0?expected[diff]:"")}");
+    // The supplied recording at its own rate, reset to a different channel offset than the receiver was made with.
+    using var reader=new IqReader(Path.Combine(root,"dmr_test.wav")); var iq=new Complex[reader.Samples]; int n=0,k; while((k=reader.Read(iq.AsSpan(n)))>0) n+=k;
+    var start=new DateTimeOffset(2026,11,7,12,0,0,TimeSpan.Zero);
+    var expectedRecorded=Fresh(new(reader.SampleRate,-12500,CaptureId:"recorded",CentreFrequencyHz:433e6,CaptureTime:start),iq,733);
+    var seenRecorded=new List<DmrEvent>(); var reused=new DmrReceiver(new(reader.SampleRate,0,CaptureId:"other"),seenRecorded.Add);
+    reused.Push(iq.AsSpan(300000,100000));
+    reused.Complete(); seenRecorded.Clear(); reused.Reset(new("recorded",-12500,433e6,start));
+    for(int i=0;i<iq.Length;i+=733) reused.Push(iq.AsSpan(i,Math.Min(733,iq.Length-i)));
+    reused.Complete();
+    Check(seenRecorded.Select(e=>e.ToJson()).SequenceEqual(expectedRecorded),"Reset receiver differs from a new one (recording)");
+    Check(seenRecorded.Count(e=>e.Type=="vocoder_frame")==216);
+});
+Test("Reset and discontinuity reuse storage; receivers share rate-dependent tables",()=>
+{
+    Action<DmrEvent> discard=_=>{};
+    var warm=new DmrReceiver(new(25000),discard); warm.Reset(new("w")); warm.Discontinuity(10);
+    long before=GC.GetAllocatedBytesForCurrentThread();
+    var second=new DmrReceiver(new(25000),discard);
+    long construct=GC.GetAllocatedBytesForCurrentThread()-before;
+    before=GC.GetAllocatedBytesForCurrentThread();
+    for(int i=0;i<1000;i++) second.Reset(new("pooled"));
+    long perReset=(GC.GetAllocatedBytesForCurrentThread()-before)/1000;
+    before=GC.GetAllocatedBytesForCurrentThread();
+    for(int i=0;i<1000;i++) second.Discontinuity(1);
+    long perDiscontinuity=(GC.GetAllocatedBytesForCurrentThread()-before)/1000;
+    Console.WriteLine($"     construct {construct/1024} KiB (framer history 1 MiB), Reset {perReset} B, Discontinuity {perDiscontinuity} B");
+    // Only the per-instance state remains: the framer's 2 x 64 Ki history and the resampler ring, no tap table.
+    Check(construct<1_150_000,$"Second receiver allocated {construct} bytes; the tap table is not shared");
+    // What remains is the capture_info / sync_lost event the call itself emits, and the ReceiverResetOptions record.
+    Check(perReset<2048,$"Reset allocated {perReset} bytes");
+    Check(perDiscontinuity<2048,$"Discontinuity allocated {perDiscontinuity} bytes");
+});
 PrivacyTests.Register(Test,root);
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 if(failed==0 && args.Length==2 && args[0]=="--benchmark") Characterization.Run(args[1]);
