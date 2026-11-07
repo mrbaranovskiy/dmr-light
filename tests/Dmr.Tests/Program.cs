@@ -357,6 +357,7 @@ Test("Reset and discontinuity reuse storage; receivers share rate-dependent tabl
     Check(perDiscontinuity<2048,$"Discontinuity allocated {perDiscontinuity} bytes");
 });
 PrivacyTests.Register(Test,root);
+MetadataTests.Register(Test);
 Console.WriteLine($"\n{passed} passed, {failed} failed");
 if(failed==0 && args.Length==2 && args[0]=="--benchmark") Characterization.Run(args[1]);
 return failed==0?0:1;

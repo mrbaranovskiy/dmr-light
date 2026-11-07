@@ -7,7 +7,7 @@ namespace Dmr.Protocol;
 
 /// <summary>Incremental burst-to-event decoder. One instance per selected RF carrier.
 /// Calls are synchronous; the caller owns scheduling and must not call concurrently.</summary>
-public sealed class ProtocolDecoder
+public sealed partial class ProtocolDecoder
 {
     private sealed class TrackState
     {
@@ -26,6 +26,9 @@ public sealed class ProtocolDecoder
         public string DecryptionStatus = "missing_parameters";
         public readonly List<byte> Embedded = new();
         public Dictionary<string,object?> Metadata = new();
+        public readonly TalkerAliasAssembler Alias = new();
+        public string? LastGpsHex;
+        public readonly PacketAssembly Packet = new();
         /// <summary>Back to the state of a new instance, keeping the collections' storage.</summary>
         public void Clear()
         {
@@ -34,6 +37,7 @@ public sealed class ProtocolDecoder
             VoiceActive=false; UnknownFeature=false; StandardFeature=false;
             Cipher=null; PrivacyFid=null; AlgorithmId=null; KeyId=null; PrivacyProfile=null;
             DecryptionStatus="missing_parameters"; Embedded.Clear(); Metadata.Clear();
+            Alias.Clear(); LastGpsHex=null; Packet.Clear();
         }
     }
     private readonly TrackState[] tracks = [new(),new()];
@@ -77,6 +81,14 @@ public sealed class ProtocolDecoder
                 {
                     if (d.Type is 1 or 2)
                     {
+                        if (s.Packet.Active) FlushPacket(track,sample);
+                        if (d.Type == 1 && IsMetadataLc(d.Payload))
+                        {
+                            // Talker alias or GPS in a full LC: metadata of the current call, not a new call.
+                            ApplyLc(d.Payload[..72],track,sample,"voice_lc_header");
+                            s.Embedded.Clear(); s.Phase=-1;
+                            return;
+                        }
                         if (d.Type == 1 && s.VoiceActive) End(track,sample,"new_header");
                         s.Colour = d.ColourCode;
                         if (d.Type == 1) Start(track,sample,"header");
@@ -90,6 +102,7 @@ public sealed class ProtocolDecoder
                     else if (d.Type == 3) ParseCsbk(d.Payload,track,sample);
                     else if (d.Type == 6) ParseDataHeader(d.Payload,track,sample);
                 }
+                else if (d.Type is 7 or 8 or 10) DataBlock(d,track,sample);
                 else if (d.Type == 0 && s.Cipher != null)
                 {
                     ClearPrivacyContext(s); s.DecryptionStatus="invalid_privacy_header";
@@ -102,6 +115,7 @@ public sealed class ProtocolDecoder
         }
         if (voiceSync)
         {
+            if (s.Packet.Active) FlushPacket(track,sample);
             Start(track,sample,"late_entry"); s.VoiceActive=true; s.Phase=0; s.Embedded.Clear();
         }
         else if (!s.VoiceActive) return;
@@ -198,6 +212,7 @@ public sealed class ProtocolDecoder
         s.Session=null; s.Colour=null; s.Source=null; s.Destination=null; s.CallType=null;
         s.Privacy="unknown"; s.Phase=-1; s.Revision=0; s.Frame=0; s.VoiceActive=false;
         s.UnknownFeature=false; s.StandardFeature=false; s.Embedded.Clear(); s.Metadata.Clear();
+        s.Alias.Clear(); s.LastGpsHex=null;
         ClearPrivacyContext(s);
     }
     private void Update(int track,long sample,Dictionary<string,object?> fields)
@@ -237,6 +252,7 @@ public sealed class ProtocolDecoder
     private void ApplyLc(byte[] lc,int track,long sample,string provenance)
     {
         var b=Bits.Pack(lc); int op=b[0]&63, fid=b[1];
+        if(fid==0 && (b[0]&0x80)==0 && op is >= 4 and <= 8) { ApplyMetadataLc(b,op,track,sample,provenance); return; }
         if(fid!=0 || op is not (0 or 3) || (b[0]&0x80)!=0)
         {
             Start(track,sample,"link_control"); var opaque=tracks[track]; opaque.UnknownFeature=true; opaque.StandardFeature=false;
@@ -269,20 +285,9 @@ public sealed class ProtocolDecoder
         var data=new Dictionary<string,object?> { ["opcode"]=op,["fid"]=b[1],["csbk_name"]=b[1]==0?name:"vendor_specific",["raw_hex"]=Convert.ToHexString(b),["provenance"]="csbk" };
         Emit("control",sample,track,data);
     }
-    private void ParseDataHeader(byte[] bits,int track,long sample)
-    {
-        var b=Bits.Pack(bits); int dpf=b[0]&15;
-        var data=new Dictionary<string,object?> { ["dpf"]=dpf,["raw_hex"]=Convert.ToHexString(b),["provenance"]="data_header" };
-        if(dpf is 0 or 1 or 2 or 3 or 13 or 14)
-        {
-            data["group"]=(b[0]&0x80)!=0; data["sap"]=(b[1]>>4)&15;
-            data["destination_id"]=(b[2]<<16)|(b[3]<<8)|b[4]; data["source_id"]=(b[5]<<16)|(b[6]<<8)|b[7];
-        }
-        Emit("data_header",sample,track,data);
-    }
     public void Reset(long sample,string reason="discontinuity")
     {
-        for(int i=0;i<2;i++) { End(i,sample,reason); tracks[i].Clear(); }
+        for(int i=0;i<2;i++) { FlushPacket(i,sample); End(i,sample,reason); tracks[i].Clear(); }
         shortLc.Clear();
     }
     /// <summary>
