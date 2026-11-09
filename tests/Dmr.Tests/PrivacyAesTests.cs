@@ -310,12 +310,16 @@ internal static class PrivacyAesTests
                 Check(Equals(u.Data["interpretation"],"opaque_feature_set") && u.Data["source_id"]==null,$"LC {raw} should stay opaque");
             }
         });
-        test("Real radio ARC4 capture (DMR_ARC4_CAPTURE, DMR_ARC4_KEY): live == deferred, every frame decrypted",()=>
+        test("Real radio ARC4 capture (AnyTone, tests/fixtures/arc4_anytone_1488to1.cs16): live == deferred, every frame decrypted",()=>
         {
-            // Not in the repository: the capture and key belong to the user. Raw cs16/cs32/cu8/cf32 by extension, or WAV;
-            // DMR_ARC4_CAPTURE_RATE (default 50000) and DMR_ARC4_CAPTURE_OFFSET (Hz, default 0) for raw input.
-            string? path=Environment.GetEnvironmentVariable("DMR_ARC4_CAPTURE"), keyHex=Environment.GetEnvironmentVariable("DMR_ARC4_KEY");
-            if(string.IsNullOrEmpty(path) || string.IsNullOrEmpty(keyHex)) { Console.WriteLine("     skipped: DMR_ARC4_CAPTURE / DMR_ARC4_KEY not set"); return; }
+            // The fixture: a 6.2 s AnyTone call recorded by the radio's owner, published with its (test) key by the owner.
+            // DMR_ARC4_CAPTURE / DMR_ARC4_KEY run the same check on another capture: raw cs16/cs32/cu8/cf32 by extension, or
+            // WAV; DMR_ARC4_CAPTURE_RATE (default 50000) and DMR_ARC4_CAPTURE_OFFSET (Hz, default 0) for raw input.
+            string? given=Environment.GetEnvironmentVariable("DMR_ARC4_CAPTURE"), keyHex=Environment.GetEnvironmentVariable("DMR_ARC4_KEY");
+            bool fixture=string.IsNullOrEmpty(given);
+            string path=fixture ? Path.Combine(root,"tests/fixtures/arc4_anytone_1488to1.cs16") : given!;
+            if(fixture) keyHex="0000002806";
+            if(string.IsNullOrEmpty(keyHex)) { Console.WriteLine("     skipped: DMR_ARC4_KEY not set for DMR_ARC4_CAPTURE"); return; }
             var key=Convert.FromHexString(keyHex); Check(key.Length==5,"DMR_ARC4_KEY must be 10 hex digits");
             string format=Path.GetExtension(path).TrimStart('.').ToLowerInvariant();
             int rate=int.Parse(Environment.GetEnvironmentVariable("DMR_ARC4_CAPTURE_RATE") ?? "50000");
@@ -343,6 +347,12 @@ internal static class PrivacyAesTests
             Console.WriteLine($"     real capture: {live.Count} frames, {decrypted} decrypted, profile {Field(live[0],"privacy_profile")}, first MI {Field(keyless[0],"privacy_message_indicator")}");
             Check(decrypted==live.Count,$"Only {decrypted} of {live.Count} frames decrypted");
             Check(!string.Concat(live.Select(e=>e.ToJson())).Contains(keyHex,StringComparison.OrdinalIgnoreCase),"Key in output");
+            if(fixture)
+            {
+                Check(live.Count==234 && Field(keyless[0],"privacy_message_indicator")=="7BC5215F" && Field(keyless[0],"cipher49_hex")=="5FFD25EC03FD00",
+                    "The fixture's known content changed");
+                Check(Equals(live[0].Data["source_id"],1488) && Equals(live[0].Data["destination_id"],1),"FID 0x10 LC: 1488 -> 1");
+            }
         });
         test("Deferred API equals live ARC4 output (108-vector keys) and keyless ARC4 context",()=>
         {

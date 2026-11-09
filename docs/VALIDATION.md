@@ -58,7 +58,7 @@ The test harness covers:
 45. Real radio ARC4 capture, when supplied through environment variables (below); otherwise reported as skipped and counted as passed.
 46. Deferred API equals live ARC4 output for the 108 reference frames.
 
-All 46 groups pass (45 is skipped without the capture). Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
+All 46 groups pass, including the real ARC4 radio capture (45). Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
 
 The synthetic RF generator uses the same RRC coefficient utility as the receiver, so it is not an independent RF oracle. Its burst and symbol streams have known expected content; the external recorded IQ and ETSI/C-decoder vectors provide independent checks at other boundaries. An independently labelled clean standard-FID radio capture remains an open validation gate.
 
@@ -66,10 +66,10 @@ The WAV writer is tested independently of mbelib. Native mbelib speech synthesis
 
 ## Real radio ARC4 capture
 
-A 6.2 s AnyTone call (DMRA-compatible ARC4, PI algorithm ID `0x01`, key ID 1; raw cs16 at 50,000 S/s, channel centred) was recorded by the user with a known key. Neither the capture nor the key is in the repository. To run the check:
+A 6.2 s AnyTone call (DMRA-compatible ARC4, PI algorithm ID `0x01`, key ID 1; raw cs16 at 50,000 S/s, channel centred) was recorded by the radio's owner with a known test key, and published by them: it is the fixture `tests/fixtures/arc4_anytone_1488to1.cs16` (1.2 MB), key `0000002806` (40-bit ARC4, entered in the radio as these 10 digits), from 1488 to group 1 at 440.000 MHz. The test runs it every time. The same check runs on another capture with:
 
 ```powershell
-$env:DMR_ARC4_CAPTURE = "path	o\capture.cs16"   # raw cs16/cs32/cu8/cf32 by extension, or .wav
+$env:DMR_ARC4_CAPTURE = "path\to\capture.cs16"   # raw cs16/cs32/cu8/cf32 by extension, or .wav
 $env:DMR_ARC4_KEY = "<10 hex digits>"
 $env:DMR_ARC4_CAPTURE_RATE = "50000"             # raw input only; default 50000
 dotnet run --project tests/Dmr.Tests -c Release
