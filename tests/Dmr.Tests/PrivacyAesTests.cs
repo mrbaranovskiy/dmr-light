@@ -354,6 +354,36 @@ internal static class PrivacyAesTests
                 Check(Equals(live[0].Data["source_id"],1488) && Equals(live[0].Data["destination_id"],1),"FID 0x10 LC: 1488 -> 1");
             }
         });
+        test("Real radio AES-256 capture (AnyTone, tests/fixtures/aes256_anytone_1488to1.cs16): live == deferred, every frame decrypted",()=>
+        {
+            // An 11.3 s AnyTone call (DMRA-compatible AES-256, PI algorithm ID 0x05, key ID 2, MI 2C7FEC98, 504 frames from 1488
+            // to group 1 at 433.5 MHz), recorded and published with its test key by the radio's owner.
+            string path=Path.Combine(root,"tests/fixtures/aes256_anytone_1488to1.cs16");
+            var key=Convert.FromHexString("0000000000000000000000000000000000000000000000000000000000002806");
+            List<DmrEvent> Run(PrivacyKeyring? keys)
+            {
+                using var reader=new Dmr.Input.IqReader(path,"cs16",50000);
+                var events=new List<DmrEvent>(); var rx=new DmrReceiver(new(reader.SampleRate,0,PrivacyKeys:keys),events.Add);
+                var buffer=new System.Numerics.Complex[4096]; int n; while((n=reader.Read(buffer))>0) rx.Push(buffer.AsSpan(0,n));
+                rx.Complete(); return events.Where(e=>e.Type=="vocoder_frame").ToList();
+            }
+            var keyless=Run(null);
+            Check(keyless.Count==504 && Field(keyless[0],"privacy_profile")=="dmra_aes256" && Equals(keyless[0].Data["privacy_algorithm_id"],5) &&
+                Equals(keyless[0].Data["privacy_key_id"],2) && Field(keyless[0],"privacy_message_indicator")=="2C7FEC98" &&
+                Field(keyless[0],"cipher49_hex")=="69CE9C1D8EE280","The fixture's known content changed");
+            Check(Equals(keyless[0].Data["source_id"],1488) && Equals(keyless[0].Data["destination_id"],1),"FID 0x10 LC: 1488 -> 1");
+            var live=Run(new PrivacyKeyring(aes256:new Dictionary<byte,byte[]>{[2]=key}));
+            Check(live.Count==keyless.Count);
+            for(int n=0;n<live.Count;n++)
+            {
+                Check(Field(live[n],"decryption_status")=="decrypted_unverified",$"Frame {n} not decrypted");
+                Check(Convert.ToHexString(Deferred(DmraAlgorithm.Aes256,key,keyless[n]))==Field(live[n],"ambe49_hex"),$"Deferred differs at frame {n}");
+            }
+            // A key of another algorithm under the same ID does not apply.
+            var arc4=Run(new PrivacyKeyring(arc4:new Dictionary<byte,byte[]>{[2]=new byte[]{0,0,0,0x28,6}}));
+            Check(arc4.All(e=>Field(e,"decryption_status")=="missing_key"),"An ARC4 key must not decrypt an AES-256 call");
+            Console.WriteLine($"     real AES-256 capture: {live.Count} frames, all decrypted, first MI {Field(keyless[0],"privacy_message_indicator")}");
+        });
         test("Deferred API equals live ARC4 output (108-vector keys) and keyless ARC4 context",()=>
         {
             using var document=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"tests/fixtures/arc4_reference.json")));

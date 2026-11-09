@@ -58,7 +58,7 @@ The test harness covers:
 45. Real radio ARC4 capture, when supplied through environment variables (below); otherwise reported as skipped and counted as passed.
 46. Deferred API equals live ARC4 output for the 108 reference frames.
 
-All 46 groups pass, including the real ARC4 radio capture (45). Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
+All 47 groups pass, including the real ARC4 and AES-256 radio captures. Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
 
 The synthetic RF generator uses the same RRC coefficient utility as the receiver, so it is not an independent RF oracle. Its burst and symbol streams have known expected content; the external recorded IQ and ETSI/C-decoder vectors provide independent checks at other boundaries. An independently labelled clean standard-FID radio capture remains an open validation gate.
 
@@ -75,7 +75,11 @@ $env:DMR_ARC4_CAPTURE_RATE = "50000"             # raw input only; default 50000
 dotnet run --project tests/Dmr.Tests -c Release
 ```
 
-Observed: one call, 234 vocoder frames. With the key all 234 are `decrypted_unverified`; decoded with mbelib the result is intelligible speech, and AMBE parameter statistics match clear speech (consecutive-frame pitch change within 6 steps in 64% of frames, against 65-71% for clear calls, 13% with a wrong key and 6% for the ciphertext). Without a key every frame carries `cipher49_hex`, `privacy_frame_index` and the MI, and `DmraPrivacy.DecryptFrame` on them reproduces every live `ambe49_hex` byte for byte. Its voice LC is FID `0x10`, FLCO 0, service options `0x40`, now interpreted with the standard address layout. The capture has no clear filler frames. No AES radio capture has been checked yet.
+Observed: one call, 234 vocoder frames. With the key all 234 are `decrypted_unverified`; decoded with mbelib the result is intelligible speech, and AMBE parameter statistics match clear speech (consecutive-frame pitch change within 6 steps in 64% of frames, against 65-71% for clear calls, 13% with a wrong key and 6% for the ciphertext). Without a key every frame carries `cipher49_hex`, `privacy_frame_index` and the MI, and `DmraPrivacy.DecryptFrame` on them reproduces every live `ambe49_hex` byte for byte. Its voice LC is FID `0x10`, FLCO 0, service options `0x40`, now interpreted with the standard address layout. The capture has no clear filler frames.
+
+## Real radio AES-256 capture
+
+An 11.3 s AnyTone call (DMRA-compatible AES-256, PI algorithm ID `0x05`, key ID 2, MI `2C7FEC98`; raw cs16 at 50,000 S/s, channel centred), from 1488 to group 1 at 433.5 MHz, recorded and published by the radio's owner with its test key `0000000000000000000000000000000000000000000000000000000000002806`: the fixture `tests/fixtures/aes256_anytone_1488to1.cs16` (2.3 MB), run every time. Observed: 504 vocoder frames, all `decrypted_unverified` with the key, intelligible speech through mbelib, AMBE statistics like clear speech (pitch change within 6 steps in 69% of consecutive frames, gain in 95%; the ciphertext 9% and 38%). Without a key, `DmraPrivacy.DecryptFrame` on the emitted fields reproduces every live frame byte for byte; an ARC4 key under the same key ID leaves every frame `missing_key`. This confirms the AES IV expansion, the OFB keystream layout (first block discarded, 7 bytes per frame) and the per-superframe MI update on a real radio. AES-128 has no radio capture yet.
 
 ## Recorded-IQ result
 
