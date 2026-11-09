@@ -20,7 +20,7 @@ public sealed partial class ProtocolDecoder
         public bool VoiceActive;
         public bool UnknownFeature;
         public bool StandardFeature;
-        public DmraArc4Context? Cipher;
+        public DmraPrivacyContext? Cipher;
         public int? PrivacyFid, AlgorithmId, KeyId;
         public string? PrivacyProfile;
         public string DecryptionStatus = "missing_parameters";
@@ -35,7 +35,7 @@ public sealed partial class ProtocolDecoder
             Session=null; Slot=null; Colour=null; Source=null; Destination=null; CallType=null;
             Privacy="unknown"; Phase=-1; Revision=0; Frame=0; LastSample=0;
             VoiceActive=false; UnknownFeature=false; StandardFeature=false;
-            Cipher=null; PrivacyFid=null; AlgorithmId=null; KeyId=null; PrivacyProfile=null;
+            Cipher?.Dispose(); Cipher=null; PrivacyFid=null; AlgorithmId=null; KeyId=null; PrivacyProfile=null;
             DecryptionStatus="missing_parameters"; Embedded.Clear(); Metadata.Clear();
             Alias.Clear(); LastGpsHex=null; Packet.Clear();
         }
@@ -45,9 +45,9 @@ public sealed partial class ProtocolDecoder
     private readonly Action<DmrEvent> sink;
     private readonly double sampleRate;
     private string captureId;
-    private readonly Arc4Keyring? privacyKeys;
+    private readonly PrivacyKeyring? privacyKeys;
     private long sequence, sessions, burstId;
-    public ProtocolDecoder(double sampleRate, Action<DmrEvent> sink, string captureId = "capture", Arc4Keyring? privacyKeys = null)
+    public ProtocolDecoder(double sampleRate, Action<DmrEvent> sink, string captureId = "capture", PrivacyKeyring? privacyKeys = null)
     {
         this.sampleRate = sampleRate; this.sink = sink; this.captureId = captureId;
         this.privacyKeys = privacyKeys;
@@ -148,13 +148,17 @@ public sealed partial class ProtocolDecoder
         }
         s.Cipher?.AlignBurst(s.Phase,voiceSync);
         var socket=Burst.VoiceSocket(bits);
+        Span<byte> cipherPacked=stackalloc byte[7], clearPacked=stackalloc byte[7];
         for (int i=0;i<3;i++)
         {
             var frame=socket.AsSpan(i*72,72); var ambe=Ambe.Decode(frame);
-            string? mi=s.Cipher is { Synchronized: true } cipher ? cipher.MessageIndicator.ToString("X8") : null;
-            string decryption=s.Cipher?.Status ?? (s.Privacy=="not_indicated" ? "not_required" : s.DecryptionStatus);
-            var clear=s.Cipher?.Transform(ambe.Payload,ambe.ChannelDecodeValid);
-            if(decryption=="ready") decryption=clear!=null ? "decrypted_unverified" : "channel_decode_failed";
+            var cipher=s.Cipher; bool aligned=cipher is { Synchronized: true };
+            string? mi=aligned ? cipher!.MessageIndicator.ToString("X8") : null;
+            int? privacyFrameIndex=aligned ? cipher!.FrameIndex : null;
+            string decryption=cipher?.Status ?? (s.Privacy=="not_indicated" ? "not_required" : s.DecryptionStatus);
+            DmraPrivacy.Pack49(ambe.Payload,cipherPacked);
+            bool decrypted=cipher?.Transform(cipherPacked,ambe.ChannelDecodeValid,clearPacked) ?? false;
+            if(decryption=="ready") decryption=decrypted ? "decrypted_unverified" : "channel_decode_failed";
             var data=new Dictionary<string,object?> {
                 ["burst_id"]=id,["superframe_phase"]="ABCDEF"[s.Phase].ToString(),["frame_index_in_burst"]=i,
                 ["frame_sequence"]=s.Frame,["playout_offset_ms"]=s.Frame*20,["duration_ms"]=20,
@@ -163,10 +167,12 @@ public sealed partial class ProtocolDecoder
                 ["colour_code"]=s.Colour,["source_id"]=s.Source,["destination_id"]=s.Destination,
                 ["channel_decode_valid"]=ambe.ChannelDecodeValid,["corrected_bits"]=ambe.CorrectedBits,
                 ["voice_crc_available"]=false,["erasure"]=false,
-                ["ambe49_hex"]=clear!=null ? Bits.Hex(clear) : s.Privacy=="not_indicated" && s.StandardFeature && ambe.ChannelDecodeValid ? Bits.Hex(ambe.Payload) : null,
-                ["ambe49_status"]=clear!=null ? "decrypted_unverified" : s.Privacy=="indicated"?"opaque_privacy":s.UnknownFeature?"opaque_vendor_profile":!s.StandardFeature?"codec_profile_unknown":s.Privacy=="unknown"?"privacy_unknown":ambe.ChannelDecodeValid?"unprotected_bits_unverified":"channel_decode_failed",
+                ["ambe49_hex"]=decrypted ? Convert.ToHexString(clearPacked) : s.Privacy=="not_indicated" && s.StandardFeature && ambe.ChannelDecodeValid ? Convert.ToHexString(cipherPacked) : null,
+                ["ambe49_status"]=decrypted ? "decrypted_unverified" : s.Privacy=="indicated"?"opaque_privacy":s.UnknownFeature?"opaque_vendor_profile":!s.StandardFeature?"codec_profile_unknown":s.Privacy=="unknown"?"privacy_unknown":ambe.ChannelDecodeValid?"unprotected_bits_unverified":"channel_decode_failed",
                 ["privacy_profile"]=s.PrivacyProfile,["privacy_fid"]=s.PrivacyFid,["privacy_algorithm_id"]=s.AlgorithmId,
-                ["privacy_key_id"]=s.KeyId,["privacy_message_indicator"]=mi,["decryption_status"]=decryption
+                ["privacy_key_id"]=s.KeyId,["privacy_message_indicator"]=mi,["decryption_status"]=decryption,
+                ["privacy_frame_index"]=privacyFrameIndex,
+                ["cipher49_hex"]=s.Privacy=="indicated" && ambe.ChannelDecodeValid ? Convert.ToHexString(cipherPacked) : null
             };
             Emit("vocoder_frame",sample,track,data); s.Frame++;
         }
@@ -224,7 +230,7 @@ public sealed partial class ProtocolDecoder
     }
     private static void ClearPrivacyContext(TrackState s)
     {
-        s.Cipher=null; s.PrivacyProfile=null; s.PrivacyFid=null; s.AlgorithmId=null; s.KeyId=null;
+        s.Cipher?.Dispose(); s.Cipher=null; s.PrivacyProfile=null; s.PrivacyFid=null; s.AlgorithmId=null; s.KeyId=null;
         s.DecryptionStatus="missing_parameters";
     }
     private void ParsePrivacyHeader(byte[] payload,int track,long sample,int colourCode)
@@ -237,11 +243,12 @@ public sealed partial class ProtocolDecoder
         {
             s.AlgorithmId=bytes[0]; s.KeyId=bytes[2];
             mi=BinaryPrimitives.ReadUInt32BigEndian(bytes.AsSpan(3,4));
-            if(bytes[0] is 0x21 or 0x01)
+            if(DmraPrivacy.AlgorithmFor(bytes[0]) is { } algorithm)
             {
-                s.PrivacyProfile="dmra_arc4";
-                s.Cipher=new(bytes[2],mi.Value,privacyKeys);
+                s.PrivacyProfile=DmraPrivacy.ProfileName(algorithm);
+                s.Cipher=new(algorithm,bytes[2],mi.Value,privacyKeys);
             }
+            else if(bytes[0]<0x26 && (bytes[0]&7)==2) s.PrivacyProfile="dmra_des";
         }
         s.DecryptionStatus=s.Cipher?.Status ?? "unsupported_profile";
         Update(track,sample,new() { ["privacy_status"]=s.Privacy,["privacy_header_raw"]=Bits.Hex(payload),
@@ -253,7 +260,9 @@ public sealed partial class ProtocolDecoder
     {
         var b=Bits.Pack(lc); int op=b[0]&63, fid=b[1];
         if(fid==0 && (b[0]&0x80)==0 && op is >= 4 and <= 8) { ApplyMetadataLc(b,op,track,sample,provenance); return; }
-        if(fid!=0 || op is not (0 or 3) || (b[0]&0x80)!=0)
+        // FID 0 (ETSI) and 0x10 (DMRA/Motorola) group (FLCO 0) and private (FLCO 3) voice LCs share the standard
+        // service options/destination/source layout (as DSD-FME interprets them). Other vendor FIDs stay opaque.
+        if(fid is not (0 or 0x10) || op is not (0 or 3) || (b[0]&0x80)!=0)
         {
             Start(track,sample,"link_control"); var opaque=tracks[track]; opaque.UnknownFeature=true; opaque.StandardFeature=false;
             if(opaque.Privacy!="indicated") opaque.Privacy="unknown_vendor";

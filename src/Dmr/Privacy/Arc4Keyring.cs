@@ -2,25 +2,16 @@ using System.Text.Json;
 
 namespace Dmr.Privacy;
 
-/// <summary>Known DMRA ARC4 keys, selected by the on-air key ID. Key material is never emitted in events.</summary>
-public sealed class Arc4Keyring
+/// <summary>Known DMRA ARC4 keys only, selected by the on-air key ID (the original keyring; still accepted wherever a
+/// <see cref="PrivacyKeyring"/> is). Key material is never emitted in events.</summary>
+public sealed class Arc4Keyring : PrivacyKeyring
 {
-    private readonly Dictionary<byte, byte[]> keys = new();
+    public Arc4Keyring(IReadOnlyDictionary<byte, byte[]> keys) : base(arc4: keys ?? throw new ArgumentNullException(nameof(keys))) { }
 
-    public Arc4Keyring(IReadOnlyDictionary<byte, byte[]> keys)
-    {
-        ArgumentNullException.ThrowIfNull(keys);
-        foreach (var pair in keys)
-        {
-            if (pair.Value is not { Length: 5 }) throw new ArgumentException("Each DMRA ARC4 key must contain exactly five bytes.");
-            this.keys.Add(pair.Key, (byte[])pair.Value.Clone());
-        }
-    }
+    internal byte[]? Find(byte id) => Find(DmraAlgorithm.Arc4, id);
 
-    internal byte[]? Find(byte id) => keys.TryGetValue(id, out var key) ? (byte[])key.Clone() : null;
-
-    /// <summary>Reads {"dmra_arc4":[{"key_id":7,"key_hex":"0102030405"}]}.</summary>
-    public static Arc4Keyring FromJson(string json)
+    /// <summary>Reads {"dmra_arc4":[{"key_id":7,"key_hex":"0102030405"}]}. Use <see cref="PrivacyKeyring.FromJson"/> for AES keys.</summary>
+    public static new Arc4Keyring FromJson(string json)
     {
         // Do not include the supplied JSON, keys, or parser exception in error messages.
         const string error = "Invalid privacy key file: expected dmra_arc4 entries with unique key_id (0-255) and key_hex (10 hex digits).";
@@ -34,10 +25,7 @@ public sealed class Arc4Keyring
             var keys = new Dictionary<byte, byte[]>();
             foreach (var entry in entries.EnumerateArray())
             {
-                if (entry.ValueKind != JsonValueKind.Object || entry.EnumerateObject().Count() != 2 ||
-                    !entry.TryGetProperty("key_id", out var id) || id.ValueKind != JsonValueKind.Number || !id.TryGetByte(out byte number) ||
-                    !entry.TryGetProperty("key_hex", out var hex) || hex.ValueKind != JsonValueKind.String || hex.GetString() is not { Length: 10 } value ||
-                    !keys.TryAdd(number, Convert.FromHexString(value)))
+                if (!TryEntry(entry, out byte number, out string hex) || hex.Length != 10 || !keys.TryAdd(number, Convert.FromHexString(hex)))
                     throw new ArgumentException(error);
             }
             return new(keys);

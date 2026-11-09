@@ -35,4 +35,28 @@ internal sealed class Arc4
         ArgumentOutOfRangeException.ThrowIfNegative(count);
         for (int n = 0; n < count; n++) Next();
     }
+
+    /// <summary>Allocation-free keystream: discards <paramref name="drop"/> bytes, then fills <paramref name="output"/>.</summary>
+    public static void Keystream(ReadOnlySpan<byte> key, int drop, Span<byte> output)
+    {
+        if (key.Length is < 1 or > 256) throw new ArgumentException("ARC4 key length must be 1 to 256 bytes.");
+        ArgumentOutOfRangeException.ThrowIfNegative(drop);
+        Span<byte> s = stackalloc byte[256];
+        for (int n = 0; n < 256; n++) s[n] = (byte)n;
+        int j = 0;
+        for (int n = 0; n < 256; n++)
+        {
+            j = (j + s[n] + key[n % key.Length]) & 255;
+            (s[n], s[j]) = (s[j], s[n]);
+        }
+        int x = 0, y = 0;
+        for (int n = 0; n < drop + output.Length; n++)
+        {
+            x = (x + 1) & 255;
+            y = (y + s[x]) & 255;
+            (s[x], s[y]) = (s[y], s[x]);
+            if (n >= drop) output[n - drop] = s[(s[x] + s[y]) & 255];
+        }
+        s.Clear();
+    }
 }

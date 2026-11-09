@@ -61,12 +61,12 @@ internal static class PrivacyTests
         {
             foreach(var c in cases)
             {
-                var context=new DmraArc4Context(c.KeyId,Convert.ToUInt32(c.InitialMi,16),Keys(c));
+                var context=new DmraPrivacyContext(DmraAlgorithm.Arc4,c.KeyId,Convert.ToUInt32(c.InitialMi,16),Keys(c));
                 for(int n=0;n<c.Frames.Length;n++)
                 {
                     if(n%3==0) context.AlignBurst(n/3%6,n%18==0);
                     Check(context.MessageIndicator.ToString("X8")==c.Frames[n].MessageIndicator);
-                    Check(Bits.Hex(context.Transform(Unpack(c.Frames[n].Ciphertext49),true)!)==c.Frames[n].Plaintext49);
+                    Check(Convert.ToHexString(context.Transform(Unpack(c.Frames[n].Ciphertext49),true)!)==c.Frames[n].Plaintext49);
                 }
             }
         });
@@ -103,12 +103,12 @@ internal static class PrivacyTests
             Check(events.Count(e=>e.Type=="erasure")==9);
             foreach(var frame in events.Where(e=>e.Type=="vocoder_frame"))
                 Check(Field(frame,"ambe49_hex")==c.Frames[(int)(long)frame.Data["frame_sequence"]!].Plaintext49);
-            var context=new DmraArc4Context(c.KeyId,Convert.ToUInt32(c.InitialMi,16),Keys(c));
+            var context=new DmraPrivacyContext(DmraAlgorithm.Arc4,c.KeyId,Convert.ToUInt32(c.InitialMi,16),Keys(c));
             for(int n=0;n<36;n++)
             {
                 bool valid=n is not (1 or 17 or 18);
                 var result=context.Transform(Unpack(c.Frames[n].Ciphertext49),valid);
-                Check(valid ? Bits.Hex(result!)==c.Frames[n].Plaintext49 : result==null);
+                Check(valid ? Convert.ToHexString(result!)==c.Frames[n].Plaintext49 : result==null);
             }
         });
         test("DMRA ARC4 missing/wrong keys, missing PI and unsupported profiles",()=>
@@ -120,7 +120,7 @@ internal static class PrivacyTests
                 var keys=scenario=="missing_key" ? Keys(cases[1]) : scenario=="wrong_key" ? new Arc4Keyring(new Dictionary<byte,byte[]> { [c.KeyId]=new byte[5] }) : Keys(c);
                 var decoder=new ProtocolDecoder(48000,events.Add,privacyKeys:keys);
                 decoder.Process(Burst.MakeLc(Lc(),7),0,0,1,"bs_data");
-                if(scenario!="missing_pi") decoder.Process(Pi(c,scenario=="unsupported_algorithm"?0x24:0x21,scenario=="unsupported_vendor"?0x68:0x10),1000,0,1,"bs_data");
+                if(scenario!="missing_pi") decoder.Process(Pi(c,scenario=="unsupported_algorithm"?0x22:0x21,scenario=="unsupported_vendor"?0x68:0x10),1000,0,1,"bs_data");
                 Feed(decoder,c,0);
                 var frame=events.Last(e=>e.Type=="vocoder_frame");
                 if(scenario=="wrong_key")
@@ -129,6 +129,11 @@ internal static class PrivacyTests
                 {
                     Check(frame.Data["ambe49_hex"]==null);
                     Check(Field(frame,"decryption_status")==(scenario.StartsWith("unsupported")?"unsupported_profile":scenario=="missing_pi"?"missing_parameters":"missing_key"));
+                    Check(Field(frame,"privacy_profile")==(scenario switch { "unsupported_algorithm"=>"dmra_des","unsupported_vendor"=>null,"missing_pi"=>null,_=>"dmra_arc4" }));
+                    // Ciphertext is reported whenever privacy is indicated; position and MI only with a supported, aligned profile.
+                    Check(Field(frame,"cipher49_hex")==c.Frames[2].Ciphertext49);
+                    Check(Equals(frame.Data["privacy_frame_index"],scenario=="missing_key"?2:null));
+                    Check(Field(frame,"privacy_message_indicator")==(scenario=="missing_key"?c.Frames[2].MessageIndicator:null));
                 }
             }
         });

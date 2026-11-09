@@ -7,7 +7,7 @@ namespace Dmr;
 
 public sealed record ReceiverOptions(double SampleRate,double ChannelOffsetHz=0,bool Conjugate=false,
     string Polarity="auto",string CaptureId="capture",double? CentreFrequencyHz=null,DateTimeOffset? CaptureTime=null,bool EmitSymbols=false,
-    Arc4Keyring? PrivacyKeys=null);
+    PrivacyKeyring? PrivacyKeys=null);
 
 /// <summary>What changes when a receiver is reused for another capture or channel (see <see cref="DmrReceiver.Reset"/>).
 /// The sample rate, polarity, conjugation, symbol output and keys stay those the receiver was created with.</summary>

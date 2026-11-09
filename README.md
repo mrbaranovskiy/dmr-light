@@ -1,6 +1,6 @@
 # DMR IQ receiver
 
-A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4 voice decryption. Optional WAV export uses an externally supplied mbelib speech decoder.
+A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4, AES-128 and AES-256 voice decryption and a stateless API for decrypting stored frames later. Optional WAV export uses an externally supplied mbelib speech decoder.
 
 ## Build and run
 
@@ -40,7 +40,7 @@ Input rates from 24 to 384 ksample/s are accepted. Channelize wider SDR streams 
 
 `--chunk-size` changes input buffering, without changing output. `--symbols` includes per-burst symbol values, hard dibits, squared-distance costs for `00,01,10,11`, residual frequency error, and uncalibrated relative power. These costs are not calibrated log likelihoods.
 
-`--privacy-keys keys.local.json` enables known-key DMRA ARC4 decoding when a supported, valid PI header supplies the key ID and message indicator. See [privacy setup, supported profile and validation limits](docs/PRIVACY.md). The default requires no key file and preserves encrypted voice frames.
+`--privacy-keys keys.local.json` enables known-key DMRA ARC4, AES-128 and AES-256 decoding when a supported, valid PI header supplies the algorithm, key ID and message indicator. See [privacy setup, supported profiles and validation limits](docs/PRIVACY.md). The default requires no key file and preserves encrypted voice frames; their corrected ciphertext, superframe position and message indicator are still emitted so they can be decrypted later with `Dmr.Privacy.DmraPrivacy`.
 
 Combine `--privacy-keys` with `--wav-dir` and `--mbelib` to export decrypted voice candidates as WAV. These candidates remain unverified: an incorrect key cannot be detected from channel correction success.
 
@@ -101,7 +101,7 @@ Output is JSON Lines, validated against [schemas/dmr-event.schema.json](schemas/
 
 The envelope contains schema version, event sequence, capture ID, original RF sample position/time, relative track, absolute slot if known, session ID, and event-specific `data`. `track` 0/1 separates the alternating burst streams; it is **not** a claim about absolute slot numbering. Carrier-level events use track -1. `sequence` is emission order; reassembled messages carry the time at which their final fragment was observed.
 
-`call_update` carries a metadata revision and provenance such as `voice_lc_header` or `embedded_lc`. Standard FID 0 group/private LC yields source/destination IDs and service options. Invalid integrity checks cannot establish trusted call identity. Manufacturer-specific FIDs and protected/unrecognized LC remain raw. Short LC destination hashes remain hashes, not full addresses.
+`call_update` carries a metadata revision and provenance such as `voice_lc_header` or `embedded_lc`. Standard FID 0 group/private LC yields source/destination IDs and service options; so does FID `0x10` (DMRA/Motorola) with FLCO 0 or 3, which uses the same layout (as DSD-FME interprets it; the event keeps `fid`). Invalid integrity checks cannot establish trusted call identity. Manufacturer-specific FIDs and protected/unrecognized LC remain raw. Short LC destination hashes remain hashes, not full addresses.
 
 Standard metadata LCs (FID 0, protect flag clear, FLCO 4 to 7 talker alias, FLCO 8 GPS info) alternate with the voice LC in the embedded LC, and may appear in a full LC. They never end a call or change its identity or privacy status. A talker alias full LC in a voice LC header slot is not a new call.
 
@@ -129,6 +129,7 @@ Each `vocoder_frame` event contains:
 - `ambe49_hex`: optional seven-byte packed codec parameter payload, after AMBE mapping and channel correction; the final seven low bits are zero.
 - `channel_decode_valid` and `corrected_bits`: AMBE protected-block decoding results. They are not end-to-end voice integrity or BER measurements.
 - `privacy_status`, `ambe49_status`, and current metadata revision.
+- `cipher49_hex`, `privacy_frame_index` (0..17), `privacy_message_indicator`: the corrected encrypted 49 bits and their superframe position and MI, with or without a key, for deferred decryption (see [PRIVACY.md](docs/PRIVACY.md)).
 
 The 49-bit candidate is supplied after a recognized standard LC profile with no indicated privacy, or after supported known-key privacy decoding, and successful channel correction. Decrypted candidates carry `ambe49_status` and `decryption_status` equal to `decrypted_unverified`; a wrong key cannot be detected from FEC success. Privacy profile, algorithm ID, key ID and current message indicator accompany the frames, without key material. Some voice bits are unprotected; `voice_crc_available` is always false. Unsupported profile, privacy, and vendor frames remain available as raw 72-bit frames. No invented silence is inserted: lost bursts in an established voice stream produce `erasure` events preserving the playout sequence.
 
@@ -145,7 +146,9 @@ RF time identifies the burst's first symbol position. All three voice frames in 
 | Voice LC header/terminator, embedded LC, CACH Short LC | Implemented |
 | Conventional CSBK envelope/opcode and data-header fields | Implemented; unknown fields remain raw |
 | 72-bit extraction and AMBE 49-bit channel adapter | Implemented |
-| Known-key DMRA ARC4 voice decryption | PI-header acquisition, per-track cipher/MI state and loss advancement; reference and synthetic IQ tests |
+| Known-key DMRA ARC4 voice decryption | PI-header acquisition, per-track cipher/MI state and loss advancement; reference vectors, synthetic IQ and a real AnyTone radio capture |
+| Known-key DMRA AES-128 / AES-256 voice decryption | Same acquisition and state; NIST OFB and independent IV/keystream checks, synthetic IQ; no radio capture yet |
+| Deferred decryption of stored frames (`DmraPrivacy`) | Ciphertext, frame index and MI emitted without a key; stateless keystream/decrypt API shared with the live path |
 | WAV export for eligible clear or decrypted voice frames | Implemented with externally supplied mbelib 1.3.0 |
 | Soft-symbol diagnostic export | Implemented; signalling FEC currently uses hard decisions |
 | Talker alias (all four formats) and GPS info LC | Implemented; spec-built vectors only, not yet checked against a real radio |
@@ -153,7 +156,7 @@ RF time identifies the burst's first symbol position. All three voice frames in 
 | Defined short data and UDT text, IPv4/UDP, Motorola TMS and Hytera text | Implemented; ETSI formats from TS 102 361-1, vendor layouts from public reverse engineering; spec-built vectors only |
 | Compressed UDP/IP headers, LRRP and other location formats, multi-fragment reassembly, response packet semantics | Deferred; raw `data_packet` retained |
 | Standalone reverse-channel interpretation, MBC semantic reassembly | Deferred; embedded single-fragment content retained in raw bursts |
-| Other privacy profiles, encrypted late-entry MI recovery, vendor LC adapters, SDR device bindings, channel scanning, Tier III | Deferred |
+| DES and other privacy profiles, encrypted late-entry MI recovery, vendor LC adapters, SDR device bindings, channel scanning, Tier III | Deferred |
 
 See [DMR_DEMODULATOR_PLAN.md](DMR_DEMODULATOR_PLAN.md) for the roadmap and [docs/VALIDATION.md](docs/VALIDATION.md) for evidence and remaining validation gates. The initial voice/metadata path is implemented; the entire roadmap is not claimed complete.
 

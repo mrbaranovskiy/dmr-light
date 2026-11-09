@@ -79,7 +79,7 @@ internal static class Synthetic
         return new(iq,expected[0],expected[1]);
     }
     private static double Gaussian(Random rng)=>Math.Sqrt(-2*Math.Log(1-rng.NextDouble()))*Math.Cos(2*Math.PI*rng.NextDouble());
-    public static List<DmrEvent> Decode(Complex[] iq,double rate=48000,double offset=0,int chunk=4096,Arc4Keyring? privacyKeys=null)
+    public static List<DmrEvent> Decode(Complex[] iq,double rate=48000,double offset=0,int chunk=4096,PrivacyKeyring? privacyKeys=null)
     {
         var events=new List<DmrEvent>(); var rx=new DmrReceiver(new(rate,offset,PrivacyKeys:privacyKeys),events.Add);
         for(int i=0;i<iq.Length;i+=chunk) rx.Push(iq.AsSpan(i,Math.Min(chunk,iq.Length-i)));

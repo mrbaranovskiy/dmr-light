@@ -48,7 +48,7 @@ try
     string? keyFile=opt.GetValueOrDefault("--privacy-keys");
     if(output!=null && keyFile!=null && Path.GetFullPath(output).Equals(Path.GetFullPath(keyFile),StringComparison.OrdinalIgnoreCase))
         throw new ArgumentException("Output must differ from the privacy key file.");
-    var keys=keyFile==null ? null : Arc4Keyring.FromJson(File.ReadAllText(keyFile));
+    var keys=keyFile==null ? null : PrivacyKeyring.FromJson(File.ReadAllText(keyFile));
     if(output!=null) Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(output))!);
     using var writer=output!=null?new StreamWriter(output,false,new System.Text.UTF8Encoding(false)):null;
     using var audio=wavDir!=null?new VoiceWavExporter(wavDir,()=>new MbelibSpeechDecoder(mbePath!)):null;

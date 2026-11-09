@@ -46,12 +46,36 @@ The test harness covers:
 33. WAV header, 8 kHz PCM frame length, gap silence, and omission of opaque calls using a deterministic fake speech decoder.
 34. Resampling at input-rate limits preserves both slots across ring-buffer wraps.
 35. Acquisition after prolonged silence survives ring-buffer wrap.
+36. NIST SP 800-38A OFB-AES128/OFB-AES256 known answers through the OFB keystream code, and OFB against a CFB-of-zeros composition.
+37. DMRA AES IV expansion and next MI against an independent bit-stream reimplementation (MIs 00000001, DEADBEEF, FFFFFFFF, 00000000, 12345678, 80000000) and a hand-checked IV.
+38. Superframe keystreams for ARC4, AES-128 and AES-256 against an independent composition over three superframes.
+39. Algorithm-ID mapping, key lengths, argument validation and key-free error messages.
+40. Key files with ARC4, AES-128 and AES-256 sections; rejection and no key disclosure.
+41. Clear filler frames (silence vector, bits 24..43 zero) are not XORed and consume their position, for ARC4 and AES.
+42. Synthetic AES-256 and AES-128 encrypted IQ: live decryption with the key (two chunk sizes), deferred decryption of the keyless output, wrong key.
+43. AES alignment across erasures, alignment loss, and DES/unsupported profiles.
+44. FID `0x10` group/private voice LC (radio-observed layout) interpreted; other vendor FIDs stay opaque.
+45. Real radio ARC4 capture, when supplied through environment variables (below); otherwise reported as skipped and counted as passed.
+46. Deferred API equals live ARC4 output for the 108 reference frames.
 
-All 35 groups pass. Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
+All 46 groups pass (45 is skipped without the capture). Privacy profile details and the remaining known-key radio validation gate are recorded in [PRIVACY.md](PRIVACY.md). ARC4 tests do not establish which privacy profile the supplied recording uses.
 
 The synthetic RF generator uses the same RRC coefficient utility as the receiver, so it is not an independent RF oracle. Its burst and symbol streams have known expected content; the external recorded IQ and ETSI/C-decoder vectors provide independent checks at other boundaries. An independently labelled clean standard-FID radio capture remains an open validation gate.
 
 The WAV writer is tested independently of mbelib. Native mbelib speech synthesis and intelligibility have not been checked against a labelled clear-speech recording; the supplied capture is encrypted and produces no eligible PCM frames.
+
+## Real radio ARC4 capture
+
+A 6.2 s AnyTone call (DMRA-compatible ARC4, PI algorithm ID `0x01`, key ID 1; raw cs16 at 50,000 S/s, channel centred) was recorded by the user with a known key. Neither the capture nor the key is in the repository. To run the check:
+
+```powershell
+$env:DMR_ARC4_CAPTURE = "path	o\capture.cs16"   # raw cs16/cs32/cu8/cf32 by extension, or .wav
+$env:DMR_ARC4_KEY = "<10 hex digits>"
+$env:DMR_ARC4_CAPTURE_RATE = "50000"             # raw input only; default 50000
+dotnet run --project tests/Dmr.Tests -c Release
+```
+
+Observed: one call, 234 vocoder frames. With the key all 234 are `decrypted_unverified`; decoded with mbelib the result is intelligible speech, and AMBE parameter statistics match clear speech (consecutive-frame pitch change within 6 steps in 64% of frames, against 65-71% for clear calls, 13% with a wrong key and 6% for the ciphertext). Without a key every frame carries `cipher49_hex`, `privacy_frame_index` and the MI, and `DmraPrivacy.DecryptFrame` on them reproduces every live `ambe49_hex` byte for byte. Its voice LC is FID `0x10`, FLCO 0, service options `0x40`, now interpreted with the standard address layout. The capture has no clear filler frames. No AES radio capture has been checked yet.
 
 ## Recorded-IQ result
 
