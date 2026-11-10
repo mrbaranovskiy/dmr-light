@@ -95,6 +95,8 @@ At EOF, the library closes sessions with reason `eof`. It does not synthesize fu
 
 For already aligned bursts, use `Dmr.Protocol.ProtocolDecoder.Process`. Inputs are 264 unpacked bits, first transmitted bit first. The caller supplies the track, optional absolute slot, original sample position, and burst kind (`bs_voice`, `bs_data`, `ms_voice`, `ms_data`, `direct1_voice`, etc., or `embedded`). This path is independently testable without DSP.
 
+The solution has two libraries. [src/Dmr.Protocol](src/Dmr.Protocol/Dmr.Protocol.csproj) holds everything above the symbol level: FEC, burst layouts, `ProtocolDecoder`, privacy (`DmraPrivacy`, keyrings), the AMBE channel adapter and WAV export. It has no DSP and no IQ input, so another front end that already has aligned bursts can reference it alone. [src/Dmr](src/Dmr/Dmr.csproj) is the IQ receiver (`DmrReceiver`, front end, framer, input readers) and references `Dmr.Protocol`; namespaces are the same in both, so a project that references `Dmr` sees every type as before.
+
 ## Output contract
 
 Output is JSON Lines, validated against [schemas/dmr-event.schema.json](schemas/dmr-event.schema.json). Diagnostics and timing summaries go to stderr, leaving stdout usable as an event stream.

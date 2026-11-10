@@ -1,7 +1,3 @@
-using System.Runtime.CompilerServices;
-
-[assembly: InternalsVisibleTo("Dmr.Tests")]
-
 namespace Dmr.Privacy;
 
 // Legacy on-air compatibility primitive. Instances belong to one voice track.

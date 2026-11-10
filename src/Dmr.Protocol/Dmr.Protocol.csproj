@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Everything above the symbol level: FEC, bursts, protocol decoding, privacy, AMBE, WAV export. No DSP and no IQ;
+       a front end supplies aligned 264-bit bursts (ProtocolDecoder.Process) and CACH (ProcessCach). -->
+  <ItemGroup><InternalsVisibleTo Include="Dmr.Tests" /></ItemGroup>
+</Project>

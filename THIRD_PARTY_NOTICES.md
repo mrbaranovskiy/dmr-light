@@ -2,7 +2,7 @@
 
 The receiver is implemented in managed C#. Runtime signalling code follows the supplied ETSI TS 102 361-1 V2.1.1 (2012-04), with conventional LC semantics from TS 102 361-2 V2.2.1 (2013-07). The generator extracts the numeric parity matrices from tables B.11-B.17; the idle-vector test uses Annex D. The supplied standards retain their original copyrights.
 
-AMBE mapping and Golay generator constants in `src/Dmr/Vocoder/Ambe.cs` are adapted from these pinned ISC-licensed sources:
+AMBE mapping and Golay generator constants in `src/Dmr.Protocol/Vocoder/Ambe.cs` are adapted from these pinned ISC-licensed sources:
 
 - [szechyjs/dsd, dmr_const.h](https://github.com/szechyjs/dsd/blob/59423fa46be8b41ef0bd2f3d2b45590600be29f0/include/dmr_const.h), commit `59423fa46be8b41ef0bd2f3d2b45590600be29f0`.
 - [szechyjs/mbelib, ecc_const.h](https://github.com/szechyjs/mbelib/blob/9a04ed5c78176a9965f3d43f7aa1b1f5330e771f/ecc_const.h), and the channel-decoding sequence in `ambe3600x2450.c`, commit `9a04ed5c78176a9965f3d43f7aa1b1f5330e771f`.

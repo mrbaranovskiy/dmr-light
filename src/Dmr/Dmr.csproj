@@ -1,1 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk" />
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The IQ receiver: input readers, front end, framer and DmrReceiver, on top of Dmr.Protocol. -->
+  <ItemGroup><ProjectReference Include="../Dmr.Protocol/Dmr.Protocol.csproj" /></ItemGroup>
+</Project>
