@@ -1,10 +1,10 @@
 # DMR IQ receiver
 
-A managed C#/.NET 8 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4, AES-128 and AES-256 voice decryption and a stateless API for decrypting stored frames later. Optional WAV export uses an externally supplied mbelib speech decoder.
+A managed C#/.NET 10 receiver that converts recorded or incrementally supplied IQ into DMR signalling events and vocoder frames. It decodes one configured RF channel, including both TDMA slots, with optional known-key DMRA ARC4, AES-128 and AES-256 voice decryption and a stateless API for decrypting stored frames later. Optional WAV export uses an externally supplied mbelib speech decoder.
 
 ## Build and run
 
-Requires the .NET 8 SDK (8.0.300 or a later 8.0 feature band, selected by `global.json`). Normal event extraction has no runtime NuGet packages, native libraries, FFTW dependencies, or network calls. WAV export additionally requires a user-supplied mbelib library.
+Requires the .NET 10 SDK (10.0.100 or a later 10.0 feature band, selected by `global.json`); the library targets net10.0, the LTS release, so .NET 10 and later applications can use it. Normal event extraction has no runtime NuGet packages, native libraries, FFTW dependencies, or network calls. WAV export additionally requires a user-supplied mbelib library.
 
 ```powershell
 dotnet build Dmr.sln -c Release
@@ -12,7 +12,7 @@ dotnet run --project src/Dmr.Cli -c Release -- dmr_test.wav --offset -12500 --ou
 dotnet run --project tests/Dmr.Tests -c Release
 ```
 
-To publish a Windows executable that uses the installed .NET 8 runtime:
+To publish a Windows executable that uses the installed .NET 10 runtime:
 
 ```powershell
 dotnet publish src/Dmr.Cli -c Release -r win-x64 --self-contained false -o output/publish
